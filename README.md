@@ -8,10 +8,10 @@ Package | Description
 [Gorilla](https://github.com/gorilla/mux) | Request router and dispatcher for matching incoming requests to their respective handler
 [Gorm](https://github.com/go-gorm/gorm) | ORM
 [GoDotEnv](https://github.com/joho/godotenv) | .env lib 
-[Faker](github.com/jaswdr/faker) | faker (for seeding)
-[Uuid](github.com/gofrs/uuid) | generate uuid
-[JWT GO](github.com/dgrijalva/jwt-go) | json web token
-[Validator](github.com/go-playground/validator) | json validator
+[Faker](https://github.com/jaswdr/faker) | faker (for seeding)
+[Uuid](https://github.com/gofrs/uuid) | generate uuid
+[JWT GO](https://github.com/dgrijalva/jwt-go) | json web token
+[Validator](https://github.com/go-playground/validator) | json validator
 
 
 
@@ -32,3 +32,19 @@ Package | Description
     ```bash
     go run cmd/seeder/main.go 
     ```
+
+
+## Folder Structure
+    .
+    └── go-basic-rest-api-revisit/
+        ├── cmd/
+        │   └── seeder          #db seeder
+        ├── config            #.env var value, json validator
+        ├── fake              #data faker
+        ├── database          #get database instance
+        ├── handler           #rest api handler / controller
+        ├── service           #rest api service [for bussiness logic]
+        ├── middleware        #rest api middleware, before visiting controller
+        ├── router            #rest api router
+        ├── model             #rest api model
+        └── util              #buch off helper function
