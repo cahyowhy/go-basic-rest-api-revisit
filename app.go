@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/config"
@@ -10,6 +9,7 @@ import (
 	"github.com/cahyowhy/go-basit-restapi-revisit/handler"
 	"github.com/cahyowhy/go-basit-restapi-revisit/model"
 	"github.com/cahyowhy/go-basit-restapi-revisit/router"
+	"github.com/cahyowhy/go-basit-restapi-revisit/util"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
@@ -21,12 +21,13 @@ type App struct {
 
 func (app *App) Initialize(paramConfig *config.Config) {
 	app.db = model.DbMigrate(database.GetDatabase(paramConfig))
+	util.InitLogger()
 	app.setRouter()
 }
 
 func (app *App) Run(host string) {
 	fmt.Printf("Running on host %s", host)
-	log.Fatal(http.ListenAndServe(host, app.Router))
+	util.ErrorLogger.Fatal(http.ListenAndServe(host, app.Router))
 }
 
 func (app *App) setRouter() {
@@ -35,11 +36,8 @@ func (app *App) setRouter() {
 
 	for _, route := range router.GetDefinedRoutes(app.db) {
 		newRoute := route
-		var routeHandler http.HandlerFunc = func(writer http.ResponseWriter, req *http.Request) {
-			newRoute.Handler(app.db, writer, req)
-		}
 
-		var addapt = handler.Adapt(routeHandler, newRoute.Middlewares...).ServeHTTP
+		var addapt = handler.Adapt(newRoute.Handler, newRoute.Middlewares...).ServeHTTP
 
 		subrouter.HandleFunc(newRoute.Path, addapt).Methods(string(newRoute.Method))
 	}

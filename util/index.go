@@ -2,47 +2,12 @@ package util
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
-	"strconv"
-	"time"
 
-	"github.com/cahyowhy/go-basit-restapi-revisit/config"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/go-playground/validator"
+	"github.com/gofrs/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
-
-func GenerateJwt(payload jwt.MapClaims) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-
-	return token.SignedString([]byte(config.GetConfig().JWTSECRET))
-}
-
-func IsJwtValid(paramToken string) bool {
-	if len(paramToken) == 0 {
-		return false
-	}
-
-	token, _ := jwt.Parse(paramToken, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Failed Parse Token")
-		}
-
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-
-	if ok && token.Valid {
-		expired, okExp := claims["expired"].(string)
-		expiredTime, err := strconv.ParseInt(expired, 10, 64)
-
-		return expiredTime > time.Now().Unix() && err == nil && okExp
-	}
-
-	return false
-}
 
 func ResponseSendJson(w http.ResponseWriter, response interface{}, httpStatus ...int) {
 	w.Header().Set("Content-Type", "application/json")
@@ -71,4 +36,20 @@ func CompareHashPassword(password string, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 
 	return err == nil
+}
+
+func ValidationErrToString(param validator.ValidationErrors) []string {
+	params := []string{}
+
+	for _, e := range param {
+		params = append(params, e.StructNamespace()+" Are not valid")
+	}
+
+	return params
+}
+
+func GetUUID() (string, error) {
+	u, err := uuid.NewV4()
+
+	return u.String(), err
 }

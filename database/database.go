@@ -2,10 +2,10 @@ package database
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/config"
+	"github.com/cahyowhy/go-basit-restapi-revisit/util"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -25,7 +25,7 @@ func GetDatabase(paramConfig *config.Config) *gorm.DB {
 		})
 
 		if err != nil {
-			log.Fatal("Could not connect database")
+			util.ErrorLogger.Fatal("Could not connect database")
 		}
 
 		db = dbRes

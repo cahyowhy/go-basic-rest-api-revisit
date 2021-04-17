@@ -8,6 +8,7 @@ import (
 
 func DbMigrate(db *gorm.DB) *gorm.DB {
 	error := db.AutoMigrate(&UserFineHistory{}, &UserBook{}, &User{}, &Book{}, &UserSession{})
+
 	if error != nil {
 		log.Fatal("Failed Migration")
 	}

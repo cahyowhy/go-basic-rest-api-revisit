@@ -2,8 +2,6 @@ package handler
 
 import (
 	"net/http"
-
-	"gorm.io/gorm"
 )
 
 type Adapter func(http.Handler) http.Handler
@@ -46,5 +44,3 @@ func Adapt(handler http.Handler, adapters ...Adapter) http.Handler {
 	}
 	return handler
 }
-
-type HandlerRoute func(*gorm.DB, http.ResponseWriter, *http.Request)

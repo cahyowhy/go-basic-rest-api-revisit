@@ -20,6 +20,8 @@ var AuthenticateJWT handler.Adapter = func(next http.Handler) http.Handler {
 
 			res.WriteHeader(http.StatusUnauthorized)
 			util.ResponseSendJson(res, body)
+
+			return
 		}
 
 		next.ServeHTTP(res, req)

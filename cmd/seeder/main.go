@@ -1,12 +1,11 @@
 package main
 
 import (
-	"log"
-
 	"github.com/cahyowhy/go-basit-restapi-revisit/config"
 	"github.com/cahyowhy/go-basit-restapi-revisit/database"
 	"github.com/cahyowhy/go-basit-restapi-revisit/fake"
 	"github.com/cahyowhy/go-basit-restapi-revisit/model"
+	"github.com/cahyowhy/go-basit-restapi-revisit/util"
 	"gorm.io/gorm"
 )
 
@@ -31,7 +30,7 @@ func seedUsers(db *gorm.DB, total int) <-chan []model.User {
 		err := db.Debug().Create(&users).Error
 
 		if err != nil {
-			log.Fatal(err.Error())
+			util.ErrorLogger.Fatal(err.Error())
 		}
 
 		r <- users
@@ -45,11 +44,10 @@ func seedBooks(db *gorm.DB, total int) <-chan []model.Book {
 
 	go func() {
 		var books = fake.GetBooks(total)
-		// fmt.Println(books[0])
 		err := db.Debug().Create(&books).Error
 
 		if err != nil {
-			log.Fatal(err.Error())
+			util.ErrorLogger.Fatal(err.Error())
 		}
 
 		r <- books
@@ -63,7 +61,7 @@ func seedUserBooks(db *gorm.DB, books []model.Book, users []model.User) []model.
 	err := db.Debug().Create(&userBooks).Error
 
 	if err != nil {
-		log.Fatal(err.Error())
+		util.ErrorLogger.Fatal(err.Error())
 	}
 
 	return userBooks
