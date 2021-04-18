@@ -8,18 +8,36 @@ import (
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/handler"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
+	"github.com/dgrijalva/jwt-go"
 )
 
 var AuthenticateJWT handler.Adapter = func(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		authHeader := req.Header.Get("Authorization")
+		auth := req.Header.Get("Authorization")
+		valid, claims := util.IsJwtValid(auth)
 
-		if !util.IsJwtValid(authHeader) {
-			body := make(map[string]string)
-			body["message"] = "Unauthorize"
+		if !valid {
+			util.ResponseSendJson(res, util.GetReponseMessage("Unauthorize"), http.StatusUnauthorized)
 
-			res.WriteHeader(http.StatusUnauthorized)
-			util.ResponseSendJson(res, body)
+			return
+		}
+
+		req = req.WithContext(context.WithValue(req.Context(), util.KeyUser, claims))
+
+		next.ServeHTTP(res, req)
+	})
+}
+
+var AuthenticateAdmin handler.Adapter = func(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		claims, okClaim := req.Context().Value(util.KeyUser).(jwt.MapClaims)
+
+		if !okClaim {
+			util.ResponseSendJson(res, util.GetReponseMessage("Unauthorize"), http.StatusUnauthorized)
+
+			return
+		} else if param, ok := claims["user_role"]; ok && param != "ADMIN" {
+			util.ResponseSendJson(res, util.GetReponseMessage("Unauthorize"), http.StatusUnauthorized)
 
 			return
 		}
@@ -36,7 +54,7 @@ var ParseQueryFilter handler.Adapter = func(next http.Handler) http.Handler {
 
 		if len(filterString) > 0 {
 			if error := json.Unmarshal([]byte(filterString), &filter); error == nil {
-				req = req.WithContext(context.WithValue(req.Context(), "filter", filter))
+				req = req.WithContext(context.WithValue(req.Context(), util.KeyFilter, filter))
 			}
 		}
 
@@ -47,8 +65,8 @@ var ParseQueryFilter handler.Adapter = func(next http.Handler) http.Handler {
 			limit = 20
 		}
 
-		req = req.WithContext(context.WithValue(req.Context(), "offset", offset))
-		req = req.WithContext(context.WithValue(req.Context(), "limit", limit))
+		req = req.WithContext(context.WithValue(req.Context(), util.KeyOffset, offset))
+		req = req.WithContext(context.WithValue(req.Context(), util.KeyLimit, limit))
 
 		next.ServeHTTP(res, req)
 	})

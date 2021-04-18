@@ -29,6 +29,25 @@ func (handler *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	util.ResponseSendJson(w, response, http.StatusInternalServerError)
 }
 
+func (handler *UserHandler) GetAllWithUserBook(w http.ResponseWriter, r *http.Request) {
+	id, errParse := strconv.ParseInt(mux.Vars(r)["id"], 10, 8)
+	if errParse != nil {
+		util.ResponseSendJson(w, util.GetReponseMessage(errParse.Error()), http.StatusInternalServerError)
+
+		return
+	}
+
+	response, err := handler.service.FindAllWithUserBook(int(id))
+
+	if err == nil {
+		util.ResponseSendJson(w, response)
+
+		return
+	}
+
+	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+}
+
 func (handler *UserHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, errParse := strconv.ParseInt(mux.Vars(r)["id"], 10, 8)
 	if errParse != nil {
@@ -44,7 +63,7 @@ func (handler *UserHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	util.ResponseSendJson(w, response, http.StatusNotFound)
 }
 
 func (handler *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +146,7 @@ func (handler *UserHandler) Session(w http.ResponseWriter, r *http.Request) {
 
 	response, err := handler.service.FindSession(refreshToken.Value)
 	if err != nil {
-		util.ResponseSendJson(w, util.GetReponseMessage(err.Error()), http.StatusInternalServerError)
+		util.ResponseSendJson(w, util.GetReponseMessage(err.Error()), http.StatusUnauthorized)
 
 		return
 	}
@@ -148,13 +167,13 @@ func (handler *UserHandler) setRefreshCookie(w http.ResponseWriter, username str
 	http.SetCookie(w, &cookie)
 }
 
-var userService *UserHandler
-var onceUserService sync.Once
+var userHandler *UserHandler
+var onceUserHandler sync.Once
 
 func GetUserHandler(db *gorm.DB) *UserHandler {
-	onceUserService.Do(func() {
-		userService = &UserHandler{service.GetUserService(db)}
+	onceUserHandler.Do(func() {
+		userHandler = &UserHandler{service.GetUserService(db)}
 	})
 
-	return userService
+	return userHandler
 }

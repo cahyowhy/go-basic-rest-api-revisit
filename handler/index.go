@@ -2,6 +2,8 @@ package handler
 
 import (
 	"net/http"
+
+	"github.com/cahyowhy/go-basit-restapi-revisit/util"
 )
 
 type Adapter func(http.Handler) http.Handler
@@ -13,8 +15,8 @@ type QueryParam struct {
 }
 
 func GetQueryParam(r *http.Request) QueryParam {
-	offset, okOffset := r.Context().Value("offset").(int)
-	limit, okLimit := r.Context().Value("offset").(int)
+	offset, okOffset := r.Context().Value(util.KeyOffset).(int64)
+	limit, okLimit := r.Context().Value(util.KeyLimit).(int64)
 
 	if !okOffset {
 		offset = 0
@@ -24,9 +26,9 @@ func GetQueryParam(r *http.Request) QueryParam {
 		limit = 20
 	}
 
-	queryParam := QueryParam{Offset: offset, Limit: limit}
+	queryParam := QueryParam{Offset: int(offset), Limit: int(limit)}
 
-	var filter = r.Context().Value("filter")
+	var filter = r.Context().Value(util.KeyFilter)
 	filterFinal, ok := filter.(map[string]interface{})
 
 	if ok {

@@ -12,6 +12,7 @@ import (
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
 	"github.com/go-playground/validator"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type UserService struct {
@@ -36,34 +37,45 @@ func (userService *UserService) FindAll(offset int, limit int, filter map[string
 	return body, nil
 }
 
-func (userService *UserService) SaveSession(username string) (model.UserSession, error) {
-	userSession := model.UserSession{}
+func (userService *UserService) FindAllWithUserBook(id int) (map[string]interface{}, error) {
+	user := model.User{}
 
+	if err := userService.db.Omit("Password", "UserBooks.User").Preload("UserBooks.Book").Preload(clause.Associations).First(&user, id).Error; err != nil {
+		return util.GetReponseMessage(err.Error()), err
+	}
+
+	var body = make(map[string]interface{})
+	body["data"] = user
+
+	return body, nil
+}
+
+func (userService *UserService) SaveSession(username string) (userSession model.UserSession, err error) {
 	// 3 days
 	expired := time.Now().Local().Add(time.Hour * 24 * 3)
 	refreshToken, err := util.GetUUID()
 
 	if err != nil {
-		return userSession, err
+		return
 	}
 
-	if err := userService.db.First(&userSession, "refresh_token = ?", refreshToken).Error; err != nil {
+	if err = userService.db.First(&userSession, "refresh_token = ?", refreshToken).Error; err != nil {
 		userSession.Expired = expired
 		userSession.RefreshToken = refreshToken
 		userSession.Username = username
 
-		if err := userService.db.Save(&userSession).Error; err != nil {
-			return userSession, err
+		if err = userService.db.Save(&userSession).Error; err != nil {
+			return
 		}
 
 		return userSession, nil
 	}
 
-	if err := userService.db.Model(&userSession).Update("expired", expired).Error; err != nil {
-		return userSession, err
+	if err = userService.db.Model(&userSession).Update("expired", expired).Error; err != nil {
+		return
 	}
 
-	return userSession, nil
+	return
 }
 
 func (userService *UserService) FindSession(refreshToken string) (map[string]interface{}, error) {

@@ -20,8 +20,13 @@ func GetDatabase(paramConfig *config.Config) *gorm.DB {
 			paramConfig.DbConfig.Username, paramConfig.DbConfig.Password,
 			paramConfig.DbConfig.Name, paramConfig.DbConfig.Port)
 
+		logLvl := logger.Info
+		if paramConfig.AppEnv != "DEVELOPMENT" {
+			logLvl = logger.Silent
+		}
+
 		dbRes, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-			Logger: logger.Recorder.LogMode(logger.Silent),
+			Logger: logger.Recorder.LogMode(logLvl),
 		})
 
 		if err != nil {

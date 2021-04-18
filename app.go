@@ -7,7 +7,6 @@ import (
 	"github.com/cahyowhy/go-basit-restapi-revisit/config"
 	"github.com/cahyowhy/go-basit-restapi-revisit/database"
 	"github.com/cahyowhy/go-basit-restapi-revisit/handler"
-	"github.com/cahyowhy/go-basit-restapi-revisit/model"
 	"github.com/cahyowhy/go-basit-restapi-revisit/router"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
 	"github.com/gorilla/mux"
@@ -20,8 +19,8 @@ type App struct {
 }
 
 func (app *App) Initialize(paramConfig *config.Config) {
-	app.db = model.DbMigrate(database.GetDatabase(paramConfig))
 	util.InitLogger()
+	app.db = database.GetDatabase(paramConfig)
 	app.setRouter()
 }
 

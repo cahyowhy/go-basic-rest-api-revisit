@@ -9,6 +9,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type keyCtk int
+
+const (
+	KeyOffset keyCtk = iota
+	KeyLimit
+	KeyFilter
+	KeyUser
+)
+
 func ResponseSendJson(w http.ResponseWriter, response interface{}, httpStatus ...int) {
 	w.Header().Set("Content-Type", "application/json")
 
