@@ -27,10 +27,14 @@ Package | Description
 
 
 
-## How to db:seed
-1. run
+## How to db:?
+1. run seeder
     ```bash
     go run cmd/seeder/main.go 
+    ```
+2. run migrate
+    ```bash
+    go run cmd/migrate/main.go 
     ```
 
 
@@ -38,7 +42,8 @@ Package | Description
     .
     └── go-basic-rest-api-revisit/
         ├── cmd/
-        │   └── seeder          #db seeder
+        │   └── seeder        #db seeder
+        │   └── migrate       #db migrate
         ├── config            #.env var value, json validator
         ├── fake              #data faker
         ├── database          #get database instance
