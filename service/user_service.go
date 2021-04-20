@@ -12,42 +12,40 @@ import (
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
 	"github.com/go-playground/validator"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type UserService struct {
-	db *gorm.DB
+	db   *gorm.DB
+	base *baseService
 }
 
 func (userService *UserService) FindAll(offset int, limit int, filter map[string]interface{}) (map[string]interface{}, error) {
 	users := []model.User{}
-	tx := userService.db.Offset(offset).Limit(limit)
-
-	if filter != nil {
-		tx = tx.Where(filter)
+	if err := userService.base.findAll(&users, offset, limit, filter, "Password"); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	if err := tx.Omit("password").Find(&users).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	return util.ToMapKey("data", users), nil
+}
+
+func (userService *UserService) Count(filter map[string]interface{}) (map[string]interface{}, error) {
+	var total int64
+	if err := userService.base.count(&total, &model.User{}, filter); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var body = make(map[string]interface{})
-	body["data"] = users
-
-	return body, nil
+	return util.ToMapKey("data", total), nil
 }
 
 func (userService *UserService) FindAllWithUserBook(id int) (map[string]interface{}, error) {
-	user := model.User{}
+	userBooks := []model.UserBook{}
+	param := util.ToMapKey("user_id", id)
 
-	if err := userService.db.Omit("Password", "UserBooks.User").Preload("UserBooks.Book").Preload(clause.Associations).First(&user, id).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := userService.db.Omit("User.Password").Joins("User").Find(&userBooks, param).Error; err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var body = make(map[string]interface{})
-	body["data"] = user
-
-	return body, nil
+	return util.ToMapKey("data", userBooks), nil
 }
 
 func (userService *UserService) SaveSession(username string) (userSession model.UserSession, err error) {
@@ -80,21 +78,20 @@ func (userService *UserService) SaveSession(username string) (userSession model.
 
 func (userService *UserService) FindSession(refreshToken string) (map[string]interface{}, error) {
 	userSession := model.UserSession{}
-
 	if err := userService.db.First(&userSession, "refresh_token = ?", refreshToken).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+		return util.ToMapKey("message", err.Error()), err
 	}
 
 	valid := userSession.Expired.Unix() > time.Now().Unix()
 	if !valid {
 		err := errors.New("user session not found")
 
-		return util.GetReponseMessage(err.Error()), err
+		return util.ToMapKey("message", err.Error()), err
 	}
 
 	user := model.User{}
 	if err := userService.db.First(&user, "username = ?", userSession.Username).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+		return util.ToMapKey("message", err.Error()), err
 	}
 
 	return responseWithToken(&user)
@@ -103,68 +100,48 @@ func (userService *UserService) FindSession(refreshToken string) (map[string]int
 func (userService *UserService) Find(id int) (map[string]interface{}, error) {
 	user := model.User{}
 
-	if err := userService.db.Omit("password").First(&user, id).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := userService.base.findWhere(&user, id); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var body = make(map[string]interface{})
-	body["data"] = user
-
-	return body, nil
+	return util.ToMapKey("data", user), nil
 }
 
 func (userService *UserService) Update(id int, body io.Reader) (map[string]interface{}, error) {
 	user := model.User{}
-	decoder := json.NewDecoder(body)
-
-	if err := decoder.Decode(&user); err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := userService.base.decodeJson(&user, body); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
 	user.Model.ID = uint(id)
-
-	if err := userService.db.Omit("password").Updates(&user).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := userService.base.update(&user, id, "Password"); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var response = make(map[string]interface{})
-	response["data"] = user
-
-	return response, nil
+	return util.ToMapKey("data", user), nil
 }
 
 func (userService *UserService) Create(body io.Reader) (map[string]interface{}, error) {
 	user := model.User{}
-	decoder := json.NewDecoder(body)
-
-	if err := decoder.Decode(&user); err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := userService.base.decodeJson(&user, body); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var err = config.GetValidator().Struct(user)
-	if err != nil {
-		response := make(map[string]interface{})
-		response["errors"] = util.ValidationErrToString(err.(validator.ValidationErrors))
-
-		return response, err
+	if err := config.GetValidator().Struct(user); err != nil {
+		return util.ToMapKey("errors", util.ValidationErrToString(err.(validator.ValidationErrors))), err
 	}
 
 	password, err := util.GeneratePassword(user.Password)
-
 	if err != nil {
-		return util.GetReponseMessage(err.Error()), err
+		return util.ToMapKey("message", err.Error()), err
 	}
 
 	user.Password = password
-
-	if err := userService.db.Save(&user).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := userService.base.create(&user); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var response = make(map[string]interface{})
-	response["data"] = user
-
-	return response, nil
+	return util.ToMapKey("data", user), nil
 }
 
 func (userService *UserService) Logout(refreshToken string) error {
@@ -176,15 +153,11 @@ func (userService *UserService) Login(body io.Reader) (map[string]interface{}, s
 	decoder := json.NewDecoder(body)
 
 	if err := decoder.Decode(&loginUser); err != nil {
-		return util.GetReponseMessage(err.Error()), "", err
+		return util.ToMapKey("message", err.Error()), "", err
 	}
 
-	var err = config.GetValidator().Struct(loginUser)
-	if err != nil {
-		response := make(map[string]interface{})
-		response["errors"] = util.ValidationErrToString(err.(validator.ValidationErrors))
-
-		return response, "", err
+	if err := config.GetValidator().Struct(loginUser); err != nil {
+		return util.ToMapKey("errors", util.ValidationErrToString(err.(validator.ValidationErrors))), "", err
 	}
 
 	var tx *gorm.DB
@@ -197,14 +170,14 @@ func (userService *UserService) Login(body io.Reader) (map[string]interface{}, s
 	}
 
 	if err := tx.Error; err != nil {
-		return util.GetReponseMessage(err.Error()), "", err
+		return util.ToMapKey("message", err.Error()), "", err
 	}
 
 	isMatch := util.CompareHashPassword(loginUser.Password, user.Password)
 	if !isMatch {
 		err := errors.New("password are invalid")
 
-		return util.GetReponseMessage(err.Error()), "", err
+		return util.ToMapKey("message", err.Error()), "", err
 	}
 
 	result, err := responseWithToken(&user)
@@ -215,24 +188,20 @@ func (userService *UserService) Login(body io.Reader) (map[string]interface{}, s
 func responseWithToken(user *model.User) (map[string]interface{}, error) {
 	token, err := util.GenerateJwt(*user)
 	if err != nil {
-		return util.GetReponseMessage(err.Error()), err
+		return util.ToMapKey("message", err.Error()), err
 	}
 
 	var response = make(map[string]interface{})
 	userByte, err := json.Marshal(user)
 
 	if err != nil {
-		return util.GetReponseMessage(err.Error()), err
+		return util.ToMapKey("message", err.Error()), err
 	} else if err := json.Unmarshal(userByte, &response); err != nil {
-		return util.GetReponseMessage(err.Error()), err
+		return util.ToMapKey("message", err.Error()), err
 	}
 
 	response["token"] = token
-
-	responseData := make(map[string]interface{})
-	responseData["data"] = response
-
-	return responseData, nil
+	return util.ToMapKey("data", response), nil
 }
 
 var userService *UserService
@@ -240,7 +209,7 @@ var onceUserService sync.Once
 
 func GetUserService(db *gorm.DB) *UserService {
 	onceUserService.Do(func() {
-		userService = &UserService{db}
+		userService = &UserService{db, getBaseService(db)}
 	})
 
 	return userService

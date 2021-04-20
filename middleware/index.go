@@ -17,7 +17,7 @@ var AuthenticateJWT handler.Adapter = func(next http.Handler) http.Handler {
 		valid, claims := util.IsJwtValid(auth)
 
 		if !valid {
-			util.ResponseSendJson(res, util.GetReponseMessage("Unauthorize"), http.StatusUnauthorized)
+			util.ResponseSendJson(res, util.ToMapKey("message", "Unauthorize"), http.StatusUnauthorized)
 
 			return
 		}
@@ -33,11 +33,11 @@ var AuthenticateAdmin handler.Adapter = func(next http.Handler) http.Handler {
 		claims, okClaim := req.Context().Value(util.KeyUser).(jwt.MapClaims)
 
 		if !okClaim {
-			util.ResponseSendJson(res, util.GetReponseMessage("Unauthorize"), http.StatusUnauthorized)
+			util.ResponseSendJson(res, util.ToMapKey("message", "Unauthorize"), http.StatusUnauthorized)
 
 			return
 		} else if param, ok := claims["user_role"]; ok && param != "ADMIN" {
-			util.ResponseSendJson(res, util.GetReponseMessage("Unauthorize"), http.StatusUnauthorized)
+			util.ResponseSendJson(res, util.ToMapKey("message", "Unauthorize"), http.StatusUnauthorized)
 
 			return
 		}

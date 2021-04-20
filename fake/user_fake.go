@@ -26,6 +26,15 @@ func GetUsers(total int) []model.User {
 		lastName := strings.ToLower(fakePerson.LastName())
 		email := fmt.Sprintf("%s_%s@mail.com", firstName, lastName)
 		username := fmt.Sprintf("%s_%s", firstName, lastName)
+		userRole := model.USER
+
+		if i <= 1 {
+			firstName = "admin"
+			lastName = "admin"
+			username = "admin"
+			email = "admin@mail.com"
+			userRole = model.ADMIN
+		}
 
 		user := model.User{
 			FirstName:   firstName,
@@ -35,7 +44,7 @@ func GetUsers(total int) []model.User {
 			Username:    username,
 			Password:    password,
 			BirthDate:   time.Date(1996, time.November, 12, 0, 0, 0, 0, time.UTC),
-			UserRole:    model.USER,
+			UserRole:    userRole,
 		}
 
 		users = append(users, user)

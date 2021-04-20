@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 	"sync"
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/service"
@@ -28,10 +27,23 @@ func (handler *BookHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	util.ResponseSendJson(w, response, http.StatusInternalServerError)
 }
 
+func (handler *BookHandler) Count(w http.ResponseWriter, r *http.Request) {
+	queryParam := GetQueryParam(r)
+	response, err := handler.service.Count(queryParam.Filter)
+
+	if err == nil {
+		util.ResponseSendJson(w, response)
+
+		return
+	}
+
+	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+}
+
 func (handler *BookHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id, errParse := strconv.ParseInt(mux.Vars(r)["id"], 10, 8)
-	if errParse != nil {
-		util.ResponseSendJson(w, util.GetReponseMessage(errParse.Error()), http.StatusInternalServerError)
+	id, ok := util.ToInt(mux.Vars(r)["id"])
+	if !ok {
+		util.ResponseSendJson(w, util.ToMapKey("message", "invalid path params"), http.StatusInternalServerError)
 
 		return
 	}
@@ -58,9 +70,9 @@ func (handler *BookHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *BookHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id, errParse := strconv.ParseInt(mux.Vars(r)["id"], 10, 8)
-	if errParse != nil {
-		util.ResponseSendJson(w, util.GetReponseMessage(errParse.Error()), http.StatusInternalServerError)
+	id, ok := util.ToInt(mux.Vars(r)["id"])
+	if !ok {
+		util.ResponseSendJson(w, util.ToMapKey("message", "invalid path params"), http.StatusInternalServerError)
 
 		return
 	}

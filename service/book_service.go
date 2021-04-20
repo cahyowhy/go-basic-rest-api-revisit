@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json"
 	"io"
 	"sync"
 
@@ -13,84 +12,67 @@ import (
 )
 
 type BookService struct {
-	db *gorm.DB
+	db   *gorm.DB
+	base *baseService
 }
 
 func (bookService *BookService) FindAll(offset int, limit int, filter map[string]interface{}) (map[string]interface{}, error) {
 	books := []model.Book{}
-	tx := bookService.db.Offset(offset).Limit(limit)
-
-	if filter != nil {
-		tx = tx.Where(filter)
+	if err := bookService.base.findAll(&books, offset, limit, filter); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	if err := tx.Find(&books).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	return util.ToMapKey("data", books), nil
+}
+
+func (bookService *BookService) Count(filter map[string]interface{}) (map[string]interface{}, error) {
+	var total int64
+	if err := bookService.base.count(&total, &model.Book{}, filter); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var body = make(map[string]interface{})
-	body["data"] = books
-
-	return body, nil
+	return util.ToMapKey("data", total), nil
 }
 
 func (bookService *BookService) Find(id int) (map[string]interface{}, error) {
 	book := model.Book{}
 
-	if err := bookService.db.First(&book, id).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := bookService.base.findWhere(&book, id); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var body = make(map[string]interface{})
-	body["data"] = book
-
-	return body, nil
+	return util.ToMapKey("data", book), nil
 }
 
 func (bookService *BookService) Update(id int, body io.Reader) (map[string]interface{}, error) {
 	book := model.Book{}
-	decoder := json.NewDecoder(body)
-
-	if err := decoder.Decode(&book); err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := bookService.base.decodeJson(&book, body); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
 	book.Model.ID = uint(id)
-
-	if err := bookService.db.Updates(&book).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := bookService.base.update(&book, id); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var response = make(map[string]interface{})
-	response["data"] = book
-
-	return response, nil
+	return util.ToMapKey("data", book), nil
 }
 
 func (bookService *BookService) Create(body io.Reader) (map[string]interface{}, error) {
 	book := model.Book{}
-	decoder := json.NewDecoder(body)
-
-	if err := decoder.Decode(&book); err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := bookService.base.decodeJson(&book, body); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var err = config.GetValidator().Struct(book)
-	if err != nil {
-		response := make(map[string]interface{})
-		response["errors"] = util.ValidationErrToString(err.(validator.ValidationErrors))
-
-		return response, err
+	if err := config.GetValidator().Struct(book); err != nil {
+		return util.ToMapKey("errors", util.ValidationErrToString(err.(validator.ValidationErrors))), err
 	}
 
-	if err := bookService.db.Save(&book).Error; err != nil {
-		return util.GetReponseMessage(err.Error()), err
+	if err := bookService.base.create(&book); err != nil {
+		return util.ToMapKey("message", err.Error()), err
 	}
 
-	var response = make(map[string]interface{})
-	response["data"] = book
-
-	return response, nil
+	return util.ToMapKey("data", book), nil
 }
 
 var bookService *BookService
@@ -98,7 +80,7 @@ var onceBookService sync.Once
 
 func GetBookService(db *gorm.DB) *BookService {
 	onceBookService.Do(func() {
-		bookService = &BookService{db}
+		bookService = &BookService{db, getBaseService(db)}
 	})
 
 	return bookService

@@ -3,6 +3,7 @@ package util
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-playground/validator"
 	"github.com/gofrs/uuid"
@@ -28,9 +29,26 @@ func ResponseSendJson(w http.ResponseWriter, response interface{}, httpStatus ..
 	json.NewEncoder(w).Encode(response)
 }
 
-func GetReponseMessage(message string) map[string]interface{} {
+func CountTotalFine(date time.Time) int {
+	returnDate := time.Now()
+	diffDay := returnDate.Sub(date).Hours() / 24
+
+	if diffDay > 7 {
+		lateDay := diffDay - 7
+
+		return int(lateDay+0.5) * 1000
+	}
+
+	return 0
+}
+
+func GetReponseData(data interface{}) map[string]interface{} {
+	return ToMapKey("data", data)
+}
+
+func ToMapKey(key string, data interface{}) map[string]interface{} {
 	body := make(map[string]interface{})
-	body["message"] = message
+	body[key] = data
 
 	return body
 }

@@ -28,6 +28,36 @@ func GenerateJwt(user model.User) (string, error) {
 	return token.SignedString([]byte(config.GetConfig().JWTSECRET))
 }
 
+func ToInt(param interface{}) (int, bool) {
+	var id int
+	ok := true
+
+	switch v := param.(type) {
+	case uint:
+	case int8:
+	case int16:
+	case int32:
+	case int64:
+	case float32:
+	case float64:
+		id = int(v)
+	case int:
+		id = v
+	case string:
+		idParse, errParse := strconv.ParseInt(v, 10, 8)
+
+		if errParse != nil {
+			ok = false
+		} else {
+			id = int(idParse)
+		}
+	default:
+		ok = false
+	}
+
+	return id, ok
+}
+
 func IsJwtValid(paramToken string) (bool, jwt.MapClaims) {
 	if len(paramToken) == 0 {
 		return false, nil

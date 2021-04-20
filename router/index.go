@@ -27,21 +27,30 @@ type Router struct {
 func GetDefinedRoutes(db *gorm.DB) []Router {
 	userHandler := handler.GetUserHandler(db)
 	bookHandler := handler.GetBookHandler(db)
+	userBookHandler := handler.GetUserBookHandler(db)
 
 	return []Router{
 		// users
 		{Path: "/users", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.ParseQueryFilter}, Handler: userHandler.GetAll},
+		{Path: "/users/paging/count", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.ParseQueryFilter}, Handler: userHandler.Count},
 		{Path: "/users", Method: POST, Middlewares: []handler.Adapter{}, Handler: userHandler.Create},
 		{Path: "/users/{id}", Method: PUT, Middlewares: []handler.Adapter{middleware.AuthenticateJWT}, Handler: userHandler.Update},
 		{Path: "/users/{id}", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT}, Handler: userHandler.Get},
-		{Path: "/user-books/{id}", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.ParseQueryFilter}, Handler: userHandler.GetAllWithUserBook},
+		{Path: "/users/user-books/{id}", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin}, Handler: userHandler.GetAllWithUserBook},
+		{Path: "/users/my/user-books", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT}, Handler: userHandler.GetAllWithUserBookFromToken},
 		{Path: "/users/auth/login", Method: POST, Middlewares: []handler.Adapter{}, Handler: userHandler.Login},
 		{Path: "/users/auth/logout", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT}, Handler: userHandler.Logout},
 		{Path: "/users/auth/session", Method: GET, Middlewares: []handler.Adapter{}, Handler: userHandler.Session},
 		// books
 		{Path: "/books", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.ParseQueryFilter}, Handler: bookHandler.GetAll},
+		{Path: "/books/paging/count", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.ParseQueryFilter}, Handler: bookHandler.Count},
 		{Path: "/books", Method: POST, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin}, Handler: bookHandler.Create},
 		{Path: "/books/{id}", Method: PUT, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin}, Handler: bookHandler.Update},
 		{Path: "/books/{id}", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT}, Handler: bookHandler.Get},
+		// user-books
+		{Path: "/user-books", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin, middleware.ParseQueryFilter}, Handler: userBookHandler.GetAll},
+		{Path: "/user-books/paging/count", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin, middleware.ParseQueryFilter}, Handler: userBookHandler.Count},
+		{Path: "/user-books/borrows/{id}", Method: POST, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin}, Handler: userBookHandler.BorrowBooks},
+		{Path: "/user-books/returns/{id}", Method: PUT, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin}, Handler: userBookHandler.ReturnBooks},
 	}
 }
