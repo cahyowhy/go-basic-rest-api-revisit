@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/cahyowhy/go-basit-restapi-revisit/config"
 	"github.com/cahyowhy/go-basit-restapi-revisit/database"
 	"github.com/cahyowhy/go-basit-restapi-revisit/fake"
@@ -9,8 +12,29 @@ import (
 	"gorm.io/gorm"
 )
 
-func main() { //go run cmd/seeder/main.go
-	StartSeed(database.GetDatabase(config.GetConfig()), 10)
+//go run cmd/seeder/main.go 10 .test.env
+//go run cmd/seeder/main.go 10
+//go run cmd/seeder/main.go
+func main() {
+	total := 10
+	envFile := []string{}
+
+	if len(os.Args) > 0 {
+		totalArgs, valid := util.ToInt(os.Args[1])
+
+		if !valid {
+			log.Fatal("specify valid total data")
+		} else {
+			total = totalArgs
+		}
+
+		envFile = os.Args[2:]
+	}
+
+	cf := config.GetConfig(envFile...)
+	db := database.GetDatabase(cf)
+
+	StartSeed(db, total)
 }
 
 func StartSeed(db *gorm.DB, total int) {

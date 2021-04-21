@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/config"
 	"github.com/cahyowhy/go-basit-restapi-revisit/database"
@@ -10,7 +11,8 @@ import (
 )
 
 func main() {
-	db := database.GetDatabase(config.GetConfig())
+	cf := config.GetConfig(os.Args[1:]...)
+	db := database.GetDatabase(cf)
 
 	dbMigrate(dbDrop(db))
 }

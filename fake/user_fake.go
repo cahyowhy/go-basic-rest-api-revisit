@@ -10,10 +10,29 @@ import (
 	"github.com/jaswdr/faker"
 )
 
-func GetUsers(total int) []model.User {
-	var users []model.User
+func GetUser(password string) model.User {
 	faker := faker.New()
 	fakePerson := faker.Person()
+	firstName := strings.ToLower(fakePerson.FirstName())
+	lastName := strings.ToLower(fakePerson.LastName())
+	email := fmt.Sprintf("%s_%s@mail.com", firstName, lastName)
+	username := fmt.Sprintf("%s_%s", firstName, lastName)
+	userRole := model.USER
+
+	return model.User{
+		FirstName:   firstName,
+		LastName:    lastName,
+		Email:       email,
+		PhoneNumber: fakePerson.Contact().Phone,
+		Username:    username,
+		Password:    password,
+		BirthDate:   time.Date(1996, time.November, 12, 0, 0, 0, 0, time.UTC),
+		UserRole:    userRole,
+	}
+}
+
+func GetUsers(total int) []model.User {
+	var users []model.User
 
 	for i := 1; i <= total; i++ {
 		password, err := util.GeneratePassword("12345678")
@@ -22,29 +41,13 @@ func GetUsers(total int) []model.User {
 			continue
 		}
 
-		firstName := strings.ToLower(fakePerson.FirstName())
-		lastName := strings.ToLower(fakePerson.LastName())
-		email := fmt.Sprintf("%s_%s@mail.com", firstName, lastName)
-		username := fmt.Sprintf("%s_%s", firstName, lastName)
-		userRole := model.USER
-
+		user := GetUser(password)
 		if i <= 1 {
-			firstName = "admin"
-			lastName = "admin"
-			username = "admin"
-			email = "admin@mail.com"
-			userRole = model.ADMIN
-		}
-
-		user := model.User{
-			FirstName:   firstName,
-			LastName:    lastName,
-			Email:       email,
-			PhoneNumber: fakePerson.Contact().Phone,
-			Username:    username,
-			Password:    password,
-			BirthDate:   time.Date(1996, time.November, 12, 0, 0, 0, 0, time.UTC),
-			UserRole:    userRole,
+			user.FirstName = "admin"
+			user.LastName = "admin"
+			user.Username = "admin"
+			user.Email = "admin@mail.com"
+			user.UserRole = model.ADMIN
 		}
 
 		users = append(users, user)
