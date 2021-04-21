@@ -6,6 +6,7 @@ import (
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/service"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
@@ -16,6 +17,45 @@ type UserBookHandler struct {
 
 func (handler *UserBookHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	queryParam := GetQueryParam(r)
+	response, err := handler.service.FindAll(queryParam.Offset, queryParam.Limit, queryParam.Filter)
+
+	if err == nil {
+		util.ResponseSendJson(w, response)
+
+		return
+	}
+
+	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+}
+
+func (handler *UserBookHandler) GetAllFromAuth(w http.ResponseWriter, r *http.Request) {
+	queryParam := GetQueryParam(r)
+
+	claims, okClaim := r.Context().Value(util.KeyUser).(jwt.MapClaims)
+	if !okClaim {
+		util.ResponseSendJson(w, util.ToMapKey("message", "Unauthorize"), http.StatusUnauthorized)
+
+		return
+	}
+
+	var id int
+	idClaim, ok := claims["ID"]
+
+	if ok {
+		id, ok = util.ToInt(idClaim)
+	}
+
+	if !ok {
+		util.ResponseSendJson(w, "invalid user id", http.StatusInternalServerError)
+
+		return
+	}
+
+	if queryParam.Filter == nil {
+		queryParam.Filter = make(map[string]interface{})
+		queryParam.Filter["user_id"] = uint(id)
+	}
+
 	response, err := handler.service.FindAll(queryParam.Offset, queryParam.Limit, queryParam.Filter)
 
 	if err == nil {

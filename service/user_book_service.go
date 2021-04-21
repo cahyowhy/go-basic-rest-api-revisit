@@ -21,7 +21,15 @@ type UserBookService struct {
 
 func (service *UserBookService) FindAll(offset int, limit int, filter map[string]interface{}) (map[string]interface{}, error) {
 	userBooks := []model.UserBook{}
-	if err := service.base.findAll(&userBooks, offset, limit, filter); err != nil {
+
+	tx := service.db.Omit("users.password").Joins("User")
+	tx = tx.Joins("Book").Offset(offset).Limit(limit)
+
+	if filter != nil {
+		tx = tx.Where(filter)
+	}
+
+	if err := tx.Find(&userBooks).Error; err != nil {
 		return util.ToMapKey("message", err.Error()), err
 	}
 

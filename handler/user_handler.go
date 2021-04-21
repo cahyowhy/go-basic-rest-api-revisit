@@ -7,7 +7,6 @@ import (
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/service"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
@@ -40,53 +39,6 @@ func (handler *UserHandler) Count(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.ResponseSendJson(w, response, http.StatusInternalServerError)
-}
-
-func (handler *UserHandler) GetAllWithUserBook(w http.ResponseWriter, r *http.Request) {
-	id, ok := util.ToInt(mux.Vars(r)["id"])
-	if !ok {
-		util.ResponseSendJson(w, util.ToMapKey("message", "invalid path params"), http.StatusInternalServerError)
-
-		return
-	}
-
-	handler.findUserBookByUserId(&w, int(id))
-}
-
-func (handler *UserHandler) GetAllWithUserBookFromToken(w http.ResponseWriter, r *http.Request) {
-	claims, okClaim := r.Context().Value(util.KeyUser).(jwt.MapClaims)
-	if !okClaim {
-		util.ResponseSendJson(w, util.ToMapKey("message", "Unauthorize"), http.StatusUnauthorized)
-
-		return
-	}
-
-	var id int
-	idClaim, ok := claims["ID"]
-
-	if ok {
-		id, ok = util.ToInt(idClaim)
-	}
-
-	if !ok {
-		util.ResponseSendJson(w, "invalid user id", http.StatusInternalServerError)
-
-		return
-	}
-
-	handler.findUserBookByUserId(&w, id)
-}
-
-func (handler *UserHandler) findUserBookByUserId(w *http.ResponseWriter, id int) {
-	response, err := handler.service.FindAllWithUserBook(id)
-
-	if err == nil {
-		util.ResponseSendJson(*w, response)
-
-		return
-	}
-
-	util.ResponseSendJson(*w, response, http.StatusInternalServerError)
 }
 
 func (handler *UserHandler) Get(w http.ResponseWriter, r *http.Request) {

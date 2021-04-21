@@ -13,3 +13,10 @@ type UserFineHistory struct {
 	HasPaid     bool          `json:"has_paid"`
 	UserBookIds pq.Int32Array `gorm:"type:integer[]" json:"user_book_ids"`
 }
+
+type payFine struct {
+	ID uint `json:"id" validate:"required,number"`
+}
+type PayFines struct {
+	Fines []payFine `json:"fines" validate:"required,min=1,max=4"`
+}

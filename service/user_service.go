@@ -37,17 +37,6 @@ func (userService *UserService) Count(filter map[string]interface{}) (map[string
 	return util.ToMapKey("data", total), nil
 }
 
-func (userService *UserService) FindAllWithUserBook(id int) (map[string]interface{}, error) {
-	userBooks := []model.UserBook{}
-	param := util.ToMapKey("user_id", id)
-
-	if err := userService.db.Omit("User.Password").Joins("User").Find(&userBooks, param).Error; err != nil {
-		return util.ToMapKey("message", err.Error()), err
-	}
-
-	return util.ToMapKey("data", userBooks), nil
-}
-
 func (userService *UserService) SaveSession(username string) (userSession model.UserSession, err error) {
 	// 3 days
 	expired := time.Now().Local().Add(time.Hour * 24 * 3)
@@ -58,10 +47,13 @@ func (userService *UserService) SaveSession(username string) (userSession model.
 	}
 
 	if err = userService.db.First(&userSession, "refresh_token = ?", refreshToken).Error; err != nil {
+		if err = userService.db.Where("username = ?", username).Delete(&model.UserSession{}).Error; err != nil {
+			return
+		}
+
 		userSession.Expired = expired
 		userSession.RefreshToken = refreshToken
 		userSession.Username = username
-
 		if err = userService.db.Save(&userSession).Error; err != nil {
 			return
 		}
