@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"net/http"
 	"sync"
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/config"
@@ -10,30 +9,20 @@ import (
 	"github.com/cahyowhy/go-basit-restapi-revisit/handler"
 	"github.com/cahyowhy/go-basit-restapi-revisit/middleware"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
 
-type Method string
-
 const (
-	POST   Method = "POST"
-	DELETE Method = "DELETE"
-	GET    Method = "GET"
-	PUT    Method = "PUT"
+	POST   string = "POST"
+	DELETE string = "DELETE"
+	GET    string = "GET"
+	PUT    string = "PUT"
 )
 
-type Router struct {
-	Path        string
-	Method      Method
-	Handler     http.HandlerFunc
-	Middlewares []handler.Adapter
-}
-
 type App struct {
-	DB        *gorm.DB
-	Router    *mux.Router
-	Subrouter *mux.Router
+	DB       *gorm.DB
+	FiberApp *fiber.App
 }
 
 var app *App
@@ -49,60 +38,50 @@ func GetApp(config *config.Config) *App {
 }
 
 func (app *App) Initialize(paramConfig *config.Config) {
-	util.InitLogger()
 	app.DB = database.GetDatabase(paramConfig)
-	app.setRouter()
+	app.FiberApp = fiber.New()
+
+	util.InitLogger()
+	app.applyRoutes()
 }
 
 func (app *App) Run(host string) {
 	fmt.Printf("Running on host %s", host)
-	util.ErrorLogger.Fatal(http.ListenAndServe(host, app.Router))
+	util.ErrorLogger.Fatal(app.FiberApp.Listen(host))
 }
 
-func (app *App) setRouter() {
-	app.Router = mux.NewRouter()
-	app.Subrouter = app.Router.PathPrefix("/api/").Subrouter()
-	ApplyRoutes(app)
-}
-
-func ApplyRoutes(app *App) {
+func (app *App) applyRoutes() {
 	userHandler := handler.GetUserHandler(app.DB)
 	bookHandler := handler.GetBookHandler(app.DB)
 	userBookHandler := handler.GetUserBookHandler(app.DB)
 	userFineHistoryHandler := handler.GetUserFineHistoryHandler(app.DB)
 
-	routes := []Router{
-		// users
-		{Path: "/users", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.ParseQueryFilter}, Handler: userHandler.GetAll},
-		{Path: "/users/paging/count", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.ParseQueryFilter}, Handler: userHandler.Count},
-		{Path: "/users", Method: POST, Middlewares: []handler.Adapter{}, Handler: userHandler.Create},
-		{Path: "/users/{id}", Method: PUT, Middlewares: []handler.Adapter{middleware.AuthenticateJWT}, Handler: userHandler.Update},
-		{Path: "/users/{id}", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT}, Handler: userHandler.Get},
-		{Path: "/users/auth/login", Method: POST, Middlewares: []handler.Adapter{}, Handler: userHandler.Login},
-		{Path: "/users/auth/logout", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT}, Handler: userHandler.Logout},
-		{Path: "/users/auth/session", Method: GET, Middlewares: []handler.Adapter{}, Handler: userHandler.Session},
-		// books
-		{Path: "/books", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.ParseQueryFilter}, Handler: bookHandler.GetAll},
-		{Path: "/books/paging/count", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.ParseQueryFilter}, Handler: bookHandler.Count},
-		{Path: "/books", Method: POST, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin}, Handler: bookHandler.Create},
-		{Path: "/books/{id}", Method: PUT, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin}, Handler: bookHandler.Update},
-		{Path: "/books/{id}", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT}, Handler: bookHandler.Get},
-		// user-books
-		{Path: "/user-books", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin, middleware.ParseQueryFilter}, Handler: userBookHandler.GetAll},
-		{Path: "/user-books/me", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.ParseQueryFilter}, Handler: userBookHandler.GetAllFromAuth},
-		{Path: "/user-books/paging/count", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin, middleware.ParseQueryFilter}, Handler: userBookHandler.Count},
-		{Path: "/user-books/borrows/{id}", Method: POST, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin}, Handler: userBookHandler.BorrowBooks},
-		{Path: "/user-books/returns/{id}", Method: PUT, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin}, Handler: userBookHandler.ReturnBooks},
-		// user-fine-histories
-		{Path: "/user-fine-histories", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin, middleware.ParseQueryFilter}, Handler: userFineHistoryHandler.GetAll},
-		{Path: "/user-fine-histories/paging/count", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin, middleware.ParseQueryFilter}, Handler: userFineHistoryHandler.Count},
-		{Path: "/user-fine-histories/pay/{id}", Method: GET, Middlewares: []handler.Adapter{middleware.AuthenticateJWT, middleware.AuthenticateAdmin, middleware.ParseQueryFilter}, Handler: userFineHistoryHandler.PayBookFine},
-	}
+	// users
+	app.FiberApp.Get("/api/users", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userHandler.GetAll)
+	app.FiberApp.Get("/api/users/paging/count", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userHandler.GetAll)
+	app.FiberApp.Post("/api/users", userHandler.Create)
+	app.FiberApp.Get("/api/users/:id", middleware.AuthenticateJWT, userHandler.Get)
+	app.FiberApp.Put("/api/users/:id", middleware.AuthenticateJWT, userHandler.Update)
+	app.FiberApp.Post("/api/users/auth/login", userHandler.Login)
+	app.FiberApp.Get("/api/users/auth/logout", middleware.AuthenticateJWT, userHandler.Logout)
+	app.FiberApp.Get("/api/users/auth/session", userHandler.Session)
 
-	for _, route := range routes {
-		newRoute := route
-		var addapt = handler.Adapt(newRoute.Handler, newRoute.Middlewares...).ServeHTTP
+	// books
+	app.FiberApp.Get("/api/books", middleware.AuthenticateJWT, middleware.ParseQueryFilter, bookHandler.GetAll)
+	app.FiberApp.Get("/api/books/paging/count", middleware.AuthenticateJWT, middleware.ParseQueryFilter, bookHandler.GetAll)
+	app.FiberApp.Post("/api/books", middleware.AuthenticateJWT, bookHandler.Create)
+	app.FiberApp.Get("/api/books/:id", middleware.AuthenticateJWT, bookHandler.Get)
+	app.FiberApp.Put("/api/books/:id", middleware.AuthenticateJWT, bookHandler.Update)
 
-		app.Subrouter.HandleFunc(newRoute.Path, addapt).Methods(string(newRoute.Method))
-	}
+	// user-books
+	app.FiberApp.Get("/api/user-books", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userBookHandler.GetAll)
+	app.FiberApp.Get("/api/user-books/paging/count", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userBookHandler.Count)
+	app.FiberApp.Get("/api/user-books/me", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userBookHandler.GetAllFromAuth)
+	app.FiberApp.Get("/api/user-books/borrows/:id", middleware.AuthenticateJWT, middleware.AuthenticateAdmin, userBookHandler.BorrowBooks)
+	app.FiberApp.Get("/api/user-books/returns/:id", middleware.AuthenticateJWT, middleware.AuthenticateAdmin, userBookHandler.ReturnBooks)
+
+	// user-fine-histories
+	app.FiberApp.Get("/api/user-fine-histories", middleware.AuthenticateJWT, middleware.AuthenticateAdmin, middleware.ParseQueryFilter, userFineHistoryHandler.GetAll)
+	app.FiberApp.Get("/api/user-fine-histories/paging/count", middleware.AuthenticateJWT, middleware.AuthenticateAdmin, middleware.ParseQueryFilter, userFineHistoryHandler.Count)
+	app.FiberApp.Put("/api/user-fine-histories/pay/:id", middleware.AuthenticateJWT, middleware.AuthenticateAdmin, userFineHistoryHandler.PayBookFine)
 }

@@ -1,7 +1,7 @@
 package service
 
 import (
-	"io"
+	"encoding/json"
 	"sync"
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/config"
@@ -44,9 +44,9 @@ func (bookService *BookService) Find(id int) (map[string]interface{}, error) {
 	return util.ToMapKey("data", book), nil
 }
 
-func (bookService *BookService) Update(id int, body io.Reader) (map[string]interface{}, error) {
+func (bookService *BookService) Update(id int, body []byte) (map[string]interface{}, error) {
 	book := model.Book{}
-	if err := bookService.base.decodeJson(&book, body); err != nil {
+	if err := json.Unmarshal(body, &book); err != nil {
 		return util.ToMapKey("message", err.Error()), err
 	}
 
@@ -58,9 +58,9 @@ func (bookService *BookService) Update(id int, body io.Reader) (map[string]inter
 	return util.ToMapKey("data", book), nil
 }
 
-func (bookService *BookService) Create(body io.Reader) (map[string]interface{}, error) {
+func (bookService *BookService) Create(body []byte) (map[string]interface{}, error) {
 	book := model.Book{}
-	if err := bookService.base.decodeJson(&book, body); err != nil {
+	if err := json.Unmarshal(body, &book); err != nil {
 		return util.ToMapKey("message", err.Error()), err
 	}
 

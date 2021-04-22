@@ -1,8 +1,6 @@
 package util
 
 import (
-	"encoding/json"
-	"net/http"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -10,24 +8,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type keyCtk int
-
 const (
-	KeyOffset keyCtk = iota
-	KeyLimit
-	KeyFilter
-	KeyUser
+	KeyOffset string = "offset"
+	KeyLimit  string = "limit"
+	KeyFilter string = "filter"
+	KeyUser   string = "user"
 )
-
-func ResponseSendJson(w http.ResponseWriter, response interface{}, httpStatus ...int) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if len(httpStatus) > 0 {
-		w.WriteHeader(httpStatus[0])
-	}
-
-	json.NewEncoder(w).Encode(response)
-}
 
 func CountTotalFine(date time.Time) int {
 	returnDate := time.Now()
@@ -40,10 +26,6 @@ func CountTotalFine(date time.Time) int {
 	}
 
 	return 0
-}
-
-func GetReponseData(data interface{}) map[string]interface{} {
-	return ToMapKey("data", data)
 }
 
 func ToMapKey(key string, data interface{}) map[string]interface{} {

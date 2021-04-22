@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"sync"
 	"time"
 
@@ -99,9 +98,9 @@ func (userService *UserService) Find(id int) (map[string]interface{}, error) {
 	return util.ToMapKey("data", user), nil
 }
 
-func (userService *UserService) Update(id int, body io.Reader) (map[string]interface{}, error) {
+func (userService *UserService) Update(id int, body []byte) (map[string]interface{}, error) {
 	user := model.User{}
-	if err := userService.base.decodeJson(&user, body); err != nil {
+	if err := json.Unmarshal(body, &user); err != nil {
 		return util.ToMapKey("message", err.Error()), err
 	}
 
@@ -113,9 +112,9 @@ func (userService *UserService) Update(id int, body io.Reader) (map[string]inter
 	return util.ToMapKey("data", user), nil
 }
 
-func (userService *UserService) Create(body io.Reader) (map[string]interface{}, error) {
+func (userService *UserService) Create(body []byte) (map[string]interface{}, error) {
 	user := model.User{}
-	if err := userService.base.decodeJson(&user, body); err != nil {
+	if err := json.Unmarshal(body, &user); err != nil {
 		return util.ToMapKey("message", err.Error()), err
 	}
 
@@ -140,11 +139,10 @@ func (userService *UserService) Logout(refreshToken string) error {
 	return userService.db.Where("refresh_token = ?", refreshToken).Delete(&model.UserSession{}).Error
 }
 
-func (userService *UserService) Login(body io.Reader) (map[string]interface{}, string, error) {
+func (userService *UserService) Login(body []byte) (map[string]interface{}, string, error) {
 	loginUser := model.LoginUser{}
-	decoder := json.NewDecoder(body)
 
-	if err := decoder.Decode(&loginUser); err != nil {
+	if err := json.Unmarshal(body, &loginUser); err != nil {
 		return util.ToMapKey("message", err.Error()), "", err
 	}
 

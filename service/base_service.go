@@ -1,8 +1,6 @@
 package service
 
 import (
-	"encoding/json"
-	"io"
 	"sync"
 
 	"gorm.io/gorm"
@@ -10,12 +8,6 @@ import (
 
 type baseService struct {
 	db *gorm.DB
-}
-
-func (service *baseService) decodeJson(dest interface{}, body io.Reader) error {
-	decoder := json.NewDecoder(body)
-
-	return decoder.Decode(dest)
 }
 
 func (service *baseService) create(dest interface{}, omits ...string) error {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/service"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
 
@@ -14,77 +14,64 @@ type BookHandler struct {
 	service *service.BookService
 }
 
-func (handler *BookHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	queryParam := GetQueryParam(r)
+func (handler *BookHandler) GetAll(c *fiber.Ctx) error {
+	queryParam := GetQueryParam(c)
 	response, err := handler.service.FindAll(queryParam.Offset, queryParam.Limit, queryParam.Filter)
 
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.JSON(response)
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	return c.Status(http.StatusInternalServerError).JSON(response)
 }
 
-func (handler *BookHandler) Count(w http.ResponseWriter, r *http.Request) {
-	queryParam := GetQueryParam(r)
+func (handler *BookHandler) Count(c *fiber.Ctx) error {
+	queryParam := GetQueryParam(c)
 	response, err := handler.service.Count(queryParam.Filter)
 
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.JSON(response)
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	return c.Status(http.StatusInternalServerError).JSON(response)
 }
 
-func (handler *BookHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id, ok := util.ToInt(mux.Vars(r)["id"])
-	if !ok {
-		util.ResponseSendJson(w, util.ToMapKey("message", "invalid path params"), http.StatusInternalServerError)
+func (handler *BookHandler) Get(c *fiber.Ctx) error {
+	id, ok := util.ToInt(c.Params("id"))
 
-		return
+	if !ok {
+		return c.Status(http.StatusBadRequest).JSON(util.ToMapKey("message", "invalid path params"))
 	}
 
 	response, err := handler.service.Find(int(id))
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.JSON(response)
 	}
 
-	util.ResponseSendJson(w, response, http.StatusNotFound)
+	return c.Status(http.StatusNotFound).JSON(response)
 }
 
-func (handler *BookHandler) Create(w http.ResponseWriter, r *http.Request) {
-	response, err := handler.service.Create(r.Body)
+func (handler *BookHandler) Create(c *fiber.Ctx) error {
+	response, err := handler.service.Create(c.Body())
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.JSON(response)
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	return c.Status(http.StatusInternalServerError).JSON(response)
 }
 
-func (handler *BookHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id, ok := util.ToInt(mux.Vars(r)["id"])
+func (handler *BookHandler) Update(c *fiber.Ctx) error {
+	id, ok := util.ToInt(c.Params("id"))
 	if !ok {
-		util.ResponseSendJson(w, util.ToMapKey("message", "invalid path params"), http.StatusInternalServerError)
-
-		return
+		return c.Status(http.StatusBadRequest).JSON(util.ToMapKey("message", "invalid path params"))
 	}
 
-	response, err := handler.service.Update(int(id), r.Body)
+	response, err := handler.service.Update(int(id), c.Body())
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.Status(http.StatusInternalServerError).JSON(util.ToMapKey("message", "invalid path params"))
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	return c.JSON(response)
 }
 
 var bookHandler *BookHandler

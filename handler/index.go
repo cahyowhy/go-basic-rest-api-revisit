@@ -1,12 +1,9 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
+	"github.com/gofiber/fiber/v2"
 )
-
-type Adapter func(http.Handler) http.Handler
 
 type QueryParam struct {
 	Offset int
@@ -14,9 +11,9 @@ type QueryParam struct {
 	Filter map[string]interface{}
 }
 
-func GetQueryParam(r *http.Request) QueryParam {
-	offset, okOffset := r.Context().Value(util.KeyOffset).(int64)
-	limit, okLimit := r.Context().Value(util.KeyLimit).(int64)
+func GetQueryParam(c *fiber.Ctx) QueryParam {
+	offset, okOffset := c.Locals(util.KeyOffset).(int64)
+	limit, okLimit := c.Locals(util.KeyLimit).(int64)
 
 	if !okOffset {
 		offset = 0
@@ -28,21 +25,11 @@ func GetQueryParam(r *http.Request) QueryParam {
 
 	queryParam := QueryParam{Offset: int(offset), Limit: int(limit)}
 
-	var filter = r.Context().Value(util.KeyFilter)
-	filterFinal, ok := filter.(map[string]interface{})
+	filterFinal, ok := c.Locals(util.KeyFilter).(map[string]interface{})
 
 	if ok {
 		queryParam.Filter = filterFinal
 	}
 
 	return queryParam
-}
-
-func Adapt(handler http.Handler, adapters ...Adapter) http.Handler {
-	// The loop is reversed so the adapters/middleware gets executed in the same
-	// order as provided in the array.
-	for i := len(adapters); i > 0; i-- {
-		handler = adapters[i-1](handler)
-	}
-	return handler
 }

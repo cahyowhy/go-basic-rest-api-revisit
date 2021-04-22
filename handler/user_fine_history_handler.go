@@ -6,7 +6,7 @@ import (
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/service"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
 
@@ -14,47 +14,39 @@ type UserFineHistoryHandler struct {
 	service *service.UserFineHistoryService
 }
 
-func (handler *UserFineHistoryHandler) PayBookFine(w http.ResponseWriter, r *http.Request) {
-	id, ok := util.ToInt(mux.Vars(r)["id"])
+func (handler *UserFineHistoryHandler) PayBookFine(c *fiber.Ctx) error {
+	id, ok := util.ToInt(c.Params("id"))
 	if !ok {
-		util.ResponseSendJson(w, util.ToMapKey("message", "invalid path params"), http.StatusInternalServerError)
-
-		return
+		return c.Status(http.StatusBadRequest).JSON(util.ToMapKey("message", "invalid path params"))
 	}
 
-	if err := handler.service.PayBookFine(id, r.Body); err != nil {
-		util.ResponseSendJson(w, util.ToMapKey("message", err.Error()), http.StatusInternalServerError)
-
-		return
+	if err := handler.service.PayBookFine(id, c.Body()); err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(util.ToMapKey("message", err.Error()))
 	}
 
-	util.ResponseSendJson(w, util.ToMapKey("message", "Success paid fine"))
+	return c.JSON(util.ToMapKey("message", "Success paid fine"))
 }
 
-func (handler *UserFineHistoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	queryParam := GetQueryParam(r)
+func (handler *UserFineHistoryHandler) GetAll(c *fiber.Ctx) error {
+	queryParam := GetQueryParam(c)
 	response, err := handler.service.FindAll(queryParam.Offset, queryParam.Limit, queryParam.Filter)
 
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.JSON(response)
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	return c.Status(http.StatusInternalServerError).JSON(response)
 }
 
-func (handler *UserFineHistoryHandler) Count(w http.ResponseWriter, r *http.Request) {
-	queryParam := GetQueryParam(r)
+func (handler *UserFineHistoryHandler) Count(c *fiber.Ctx) error {
+	queryParam := GetQueryParam(c)
 	response, err := handler.service.Count(queryParam.Filter)
 
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.JSON(response)
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	return c.Status(http.StatusInternalServerError).JSON(response)
 }
 
 var userFineHistoryHandler *UserFineHistoryHandler

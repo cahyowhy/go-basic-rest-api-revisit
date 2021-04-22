@@ -2,8 +2,8 @@ package service
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
-	"io"
 	"sync"
 	"time"
 
@@ -71,9 +71,9 @@ func countAlreadyBorrowFrom(userId uint, service *UserBookService, bookIds ...ui
 	return r, rErr
 }
 
-func (service *UserBookService) getParsedUserBooks(userId uint, body io.Reader) ([]model.UserBook, model.UserBorrowBook, []uint, map[string]interface{}) {
+func (service *UserBookService) getParsedUserBooks(userId uint, body []byte) ([]model.UserBook, model.UserBorrowBook, []uint, map[string]interface{}) {
 	userBorrowBook := model.UserBorrowBook{}
-	if err := service.base.decodeJson(&userBorrowBook, body); err != nil {
+	if err := json.Unmarshal(body, &userBorrowBook); err != nil {
 		return nil, userBorrowBook, nil, util.ToMapKey("message", err.Error())
 	}
 
@@ -92,7 +92,7 @@ func (service *UserBookService) getParsedUserBooks(userId uint, body io.Reader) 
 	return userBooks, userBorrowBook, userBookIds, nil
 }
 
-func (service *UserBookService) ReturnBook(userId uint, body io.Reader) (map[string]interface{}, error) {
+func (service *UserBookService) ReturnBook(userId uint, body []byte) (map[string]interface{}, error) {
 	userBooks, _, userBookBookIds, errMap := service.getParsedUserBooks(userId, body)
 	if errMap != nil {
 		return errMap, errors.New("error parsed from body")
@@ -147,7 +147,7 @@ func (service *UserBookService) ReturnBook(userId uint, body io.Reader) (map[str
 	return response, nil
 }
 
-func (service *UserBookService) BorrowBook(userId uint, body io.Reader) (map[string]interface{}, error) {
+func (service *UserBookService) BorrowBook(userId uint, body []byte) (map[string]interface{}, error) {
 	userBooks, _, userBookIds, errMap := service.getParsedUserBooks(userId, body)
 	if errMap != nil {
 		return errMap, errors.New("error parsed from body")

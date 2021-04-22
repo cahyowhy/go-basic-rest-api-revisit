@@ -7,7 +7,7 @@ import (
 	"github.com/cahyowhy/go-basit-restapi-revisit/service"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
 
@@ -15,27 +15,34 @@ type UserBookHandler struct {
 	service *service.UserBookService
 }
 
-func (handler *UserBookHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	queryParam := GetQueryParam(r)
+func (handler *UserBookHandler) GetAll(c *fiber.Ctx) error {
+	queryParam := GetQueryParam(c)
 	response, err := handler.service.FindAll(queryParam.Offset, queryParam.Limit, queryParam.Filter)
 
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.JSON(response)
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	return c.Status(http.StatusInternalServerError).JSON(response)
 }
 
-func (handler *UserBookHandler) GetAllFromAuth(w http.ResponseWriter, r *http.Request) {
-	queryParam := GetQueryParam(r)
+func (handler *UserBookHandler) Count(c *fiber.Ctx) error {
+	queryParam := GetQueryParam(c)
+	response, err := handler.service.Count(queryParam.Filter)
 
-	claims, okClaim := r.Context().Value(util.KeyUser).(jwt.MapClaims)
+	if err == nil {
+		return c.JSON(response)
+	}
+
+	return c.Status(http.StatusInternalServerError).JSON(response)
+}
+
+func (handler *UserBookHandler) GetAllFromAuth(c *fiber.Ctx) error {
+	queryParam := GetQueryParam(c)
+
+	claims, okClaim := c.Locals(util.KeyUser).(jwt.MapClaims)
 	if !okClaim {
-		util.ResponseSendJson(w, util.ToMapKey("message", "Unauthorize"), http.StatusUnauthorized)
-
-		return
+		return c.Status(http.StatusUnauthorized).JSON(util.ToMapKey("message", "Unauthorize"))
 	}
 
 	var id int
@@ -46,9 +53,7 @@ func (handler *UserBookHandler) GetAllFromAuth(w http.ResponseWriter, r *http.Re
 	}
 
 	if !ok {
-		util.ResponseSendJson(w, "invalid user id", http.StatusInternalServerError)
-
-		return
+		return c.Status(http.StatusInternalServerError).JSON(util.ToMapKey("message", "invalid user id"))
 	}
 
 	if queryParam.Filter == nil {
@@ -59,61 +64,38 @@ func (handler *UserBookHandler) GetAllFromAuth(w http.ResponseWriter, r *http.Re
 	response, err := handler.service.FindAll(queryParam.Offset, queryParam.Limit, queryParam.Filter)
 
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.JSON(response)
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	return c.Status(http.StatusInternalServerError).JSON(response)
 }
 
-func (handler *UserBookHandler) BorrowBooks(w http.ResponseWriter, r *http.Request) {
-	id, ok := util.ToInt(mux.Vars(r)["id"])
+func (handler *UserBookHandler) BorrowBooks(c *fiber.Ctx) error {
+	id, ok := util.ToInt(c.Params("id"))
 	if !ok {
-		util.ResponseSendJson(w, util.ToMapKey("message", "invalid path params"), http.StatusInternalServerError)
-
-		return
+		return c.Status(http.StatusInternalServerError).JSON(util.ToMapKey("message", "invalid path params"))
 	}
 
-	response, err := handler.service.BorrowBook(uint(id), r.Body)
+	response, err := handler.service.BorrowBook(uint(id), c.Body())
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.JSON(response)
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	return c.Status(http.StatusInternalServerError).JSON(response)
 }
 
-func (handler *UserBookHandler) ReturnBooks(w http.ResponseWriter, r *http.Request) {
-	id, ok := util.ToInt(mux.Vars(r)["id"])
+func (handler *UserBookHandler) ReturnBooks(c *fiber.Ctx) error {
+	id, ok := util.ToInt(c.Params("id"))
 	if !ok {
-		util.ResponseSendJson(w, util.ToMapKey("message", "invalid path params"), http.StatusInternalServerError)
-
-		return
+		return c.Status(http.StatusInternalServerError).JSON(util.ToMapKey("message", "invalid path params"))
 	}
 
-	response, err := handler.service.ReturnBook(uint(id), r.Body)
+	response, err := handler.service.ReturnBook(uint(id), c.Body())
 	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
+		return c.JSON(response)
 	}
 
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
-}
-
-func (handler *UserBookHandler) Count(w http.ResponseWriter, r *http.Request) {
-	queryParam := GetQueryParam(r)
-	response, err := handler.service.Count(queryParam.Filter)
-
-	if err == nil {
-		util.ResponseSendJson(w, response)
-
-		return
-	}
-
-	util.ResponseSendJson(w, response, http.StatusInternalServerError)
+	return c.Status(http.StatusInternalServerError).JSON(response)
 }
 
 var userBookHandler *UserBookHandler

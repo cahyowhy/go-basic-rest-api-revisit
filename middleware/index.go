@@ -1,73 +1,59 @@
 package middleware
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/cahyowhy/go-basit-restapi-revisit/handler"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gofiber/fiber/v2"
 )
 
-var AuthenticateJWT handler.Adapter = func(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		auth := req.Header.Get("Authorization")
-		valid, claims := util.IsJwtValid(auth)
+var AuthenticateJWT fiber.Handler = func(c *fiber.Ctx) error {
+	auth := c.Get("Authorization")
+	valid, claims := util.IsJwtValid(auth)
 
-		if !valid {
-			util.ResponseSendJson(res, util.ToMapKey("message", "Unauthorize"), http.StatusUnauthorized)
+	if !valid {
+		return c.Status(http.StatusUnauthorized).JSON(util.ToMapKey("message", "Unauthorize"))
+	}
 
-			return
-		}
+	c.Locals(util.KeyUser, claims)
 
-		req = req.WithContext(context.WithValue(req.Context(), util.KeyUser, claims))
-
-		next.ServeHTTP(res, req)
-	})
+	return c.Next()
 }
 
-var AuthenticateAdmin handler.Adapter = func(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		claims, okClaim := req.Context().Value(util.KeyUser).(jwt.MapClaims)
+var AuthenticateAdmin fiber.Handler = func(c *fiber.Ctx) error {
+	claims, okClaim := c.Locals(util.KeyUser).(jwt.MapClaims)
 
-		if !okClaim {
-			util.ResponseSendJson(res, util.ToMapKey("message", "Unauthorize"), http.StatusUnauthorized)
+	if !okClaim {
+		return c.Status(http.StatusUnauthorized).JSON(util.ToMapKey("message", "Unauthorize"))
+	} else if param, ok := claims["user_role"]; ok && param != "ADMIN" {
+		return c.Status(http.StatusUnauthorized).JSON(util.ToMapKey("message", "Unauthorize"))
+	}
 
-			return
-		} else if param, ok := claims["user_role"]; ok && param != "ADMIN" {
-			util.ResponseSendJson(res, util.ToMapKey("message", "Unauthorize"), http.StatusUnauthorized)
-
-			return
-		}
-
-		next.ServeHTTP(res, req)
-	})
+	return c.Next()
 }
 
-var ParseQueryFilter handler.Adapter = func(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		query := req.URL.Query()
-		var filter = make(map[string]interface{})
-		var filterString = query.Get("filter")
+var ParseQueryFilter fiber.Handler = func(c *fiber.Ctx) error {
+	var filter = make(map[string]interface{})
+	var filterString = c.Query("filter")
 
-		if len(filterString) > 0 {
-			if error := json.Unmarshal([]byte(filterString), &filter); error == nil {
-				req = req.WithContext(context.WithValue(req.Context(), util.KeyFilter, filter))
-			}
+	if len(filterString) > 0 {
+		if error := json.Unmarshal([]byte(filterString), &filter); error == nil {
+			c.Locals(util.KeyFilter, filter)
 		}
+	}
 
-		offset, _ := strconv.ParseInt(query.Get("offset"), 10, 8)
-		limit, _ := strconv.ParseInt(query.Get("limit"), 10, 8)
+	offset, _ := strconv.ParseInt(c.Query("offset"), 10, 8)
+	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 8)
 
-		if limit == 0 {
-			limit = 20
-		}
+	if limit == 0 {
+		limit = 20
+	}
 
-		req = req.WithContext(context.WithValue(req.Context(), util.KeyOffset, offset))
-		req = req.WithContext(context.WithValue(req.Context(), util.KeyLimit, limit))
+	c.Locals(util.KeyOffset, offset)
+	c.Locals(util.KeyLimit, limit)
 
-		next.ServeHTTP(res, req)
-	})
+	return c.Next()
 }

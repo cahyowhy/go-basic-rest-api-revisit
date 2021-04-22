@@ -1,7 +1,7 @@
 package service
 
 import (
-	"io"
+	"encoding/json"
 	"sync"
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/model"
@@ -29,9 +29,9 @@ func (service *UserFineHistoryService) FindAll(offset int, limit int, filter map
 	return util.ToMapKey("data", userFineHistory), nil
 }
 
-func (service *UserFineHistoryService) PayBookFine(userId int, body io.Reader) error {
+func (service *UserFineHistoryService) PayBookFine(userId int, body []byte) error {
 	payFines := model.PayFines{}
-	if err := service.base.decodeJson(&payFines, body); err != nil {
+	if err := json.Unmarshal(body, &payFines); err != nil {
 		return err
 	}
 
