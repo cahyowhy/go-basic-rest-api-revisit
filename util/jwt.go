@@ -2,11 +2,11 @@ package util
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/cahyowhy/go-basit-restapi-revisit/config"
 	"github.com/cahyowhy/go-basit-restapi-revisit/model"
 	"github.com/dgrijalva/jwt-go"
 )
@@ -25,7 +25,7 @@ func GenerateJwt(user model.User) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return token.SignedString([]byte(config.GetConfig().JWTSECRET))
+	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 }
 
 func ToInt(param interface{}) (int, bool) {
@@ -76,7 +76,7 @@ func IsJwtValid(paramToken string) (bool, jwt.MapClaims) {
 			return nil, fmt.Errorf("failed Parse Token")
 		}
 
-		jwtSecret := config.GetConfig().JWTSECRET
+		jwtSecret := os.Getenv("JWT_SECRET")
 
 		return []byte(jwtSecret), nil
 	})

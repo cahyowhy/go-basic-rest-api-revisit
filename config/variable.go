@@ -9,13 +9,13 @@ import (
 )
 
 type Config struct {
-	DbConfig  dbConfig
+	DbConfig  DbConfig
 	AppEnv    string
 	JWTSECRET string
 	PORT      string
 }
 
-type dbConfig struct {
+type DbConfig struct {
 	Username string
 	Password string
 	Name     string
@@ -31,12 +31,12 @@ func GetConfig(envFile ...string) *Config {
 		err := godotenv.Load(envFile...)
 
 		if err != nil {
-			log.Fatal("Error loading .env file")
+			log.Fatalf("Error env file : %s", err.Error())
 		}
 
 		config = &Config{
 			AppEnv: os.Getenv("APP_ENV"),
-			DbConfig: dbConfig{
+			DbConfig: DbConfig{
 				Username: os.Getenv("DB_USER"),
 				Password: os.Getenv("DB_PASSWORD"),
 				Name:     os.Getenv("DB"),

@@ -2,19 +2,18 @@ package fake
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/cahyowhy/go-basit-restapi-revisit/model"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
-	"github.com/jaswdr/faker"
+	"syreclabs.com/go/faker"
 )
 
 func GetUser(password string) model.User {
-	faker := faker.New()
-	fakePerson := faker.Person()
-	firstName := strings.ToLower(fakePerson.FirstName())
-	lastName := strings.ToLower(fakePerson.LastName())
+	firstName := strings.ToLower(faker.Name().FirstName())
+	lastName := strings.ToLower(faker.Name().LastName())
 	email := fmt.Sprintf("%s_%s@mail.com", firstName, lastName)
 	username := fmt.Sprintf("%s_%s", firstName, lastName)
 	userRole := model.USER
@@ -23,7 +22,7 @@ func GetUser(password string) model.User {
 		FirstName:   firstName,
 		LastName:    lastName,
 		Email:       email,
-		PhoneNumber: fakePerson.Contact().Phone,
+		PhoneNumber: faker.PhoneNumber().PhoneNumber(),
 		Username:    username,
 		Password:    password,
 		BirthDate:   time.Date(1996, time.November, 12, 0, 0, 0, 0, time.UTC),
@@ -42,7 +41,7 @@ func GetUsers(total int) []model.User {
 		}
 
 		user := GetUser(password)
-		if i <= 1 {
+		if i <= 1 && os.Getenv("APP_ENV") == "DEVELOPMENT" {
 			user.FirstName = "admin"
 			user.LastName = "admin"
 			user.Username = "admin"

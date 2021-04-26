@@ -109,6 +109,10 @@ func (service *UserBookService) ReturnBook(userId uint, body []byte) (map[string
 			return err
 		}
 
+		if len(userBooks) == 0 {
+			return errors.New("user book not found")
+		}
+
 		userBookIds := []int32{}
 
 		for _, value := range userBooks {

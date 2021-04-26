@@ -10,6 +10,7 @@ import (
 	"github.com/cahyowhy/go-basit-restapi-revisit/middleware"
 	"github.com/cahyowhy/go-basit-restapi-revisit/util"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"gorm.io/gorm"
 )
 
@@ -56,9 +57,11 @@ func (app *App) applyRoutes() {
 	userBookHandler := handler.GetUserBookHandler(app.DB)
 	userFineHistoryHandler := handler.GetUserFineHistoryHandler(app.DB)
 
+	app.FiberApp.Get("/monitor", monitor.New())
+
 	// users
 	app.FiberApp.Get("/api/users", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userHandler.GetAll)
-	app.FiberApp.Get("/api/users/paging/count", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userHandler.GetAll)
+	app.FiberApp.Get("/api/users/paging/count", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userHandler.Count)
 	app.FiberApp.Post("/api/users", userHandler.Create)
 	app.FiberApp.Get("/api/users/:id", middleware.AuthenticateJWT, userHandler.Get)
 	app.FiberApp.Put("/api/users/:id", middleware.AuthenticateJWT, userHandler.Update)
@@ -68,7 +71,7 @@ func (app *App) applyRoutes() {
 
 	// books
 	app.FiberApp.Get("/api/books", middleware.AuthenticateJWT, middleware.ParseQueryFilter, bookHandler.GetAll)
-	app.FiberApp.Get("/api/books/paging/count", middleware.AuthenticateJWT, middleware.ParseQueryFilter, bookHandler.GetAll)
+	app.FiberApp.Get("/api/books/paging/count", middleware.AuthenticateJWT, middleware.ParseQueryFilter, bookHandler.Count)
 	app.FiberApp.Post("/api/books", middleware.AuthenticateJWT, bookHandler.Create)
 	app.FiberApp.Get("/api/books/:id", middleware.AuthenticateJWT, bookHandler.Get)
 	app.FiberApp.Put("/api/books/:id", middleware.AuthenticateJWT, bookHandler.Update)
@@ -77,8 +80,8 @@ func (app *App) applyRoutes() {
 	app.FiberApp.Get("/api/user-books", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userBookHandler.GetAll)
 	app.FiberApp.Get("/api/user-books/paging/count", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userBookHandler.Count)
 	app.FiberApp.Get("/api/user-books/me", middleware.AuthenticateJWT, middleware.ParseQueryFilter, userBookHandler.GetAllFromAuth)
-	app.FiberApp.Get("/api/user-books/borrows/:id", middleware.AuthenticateJWT, middleware.AuthenticateAdmin, userBookHandler.BorrowBooks)
-	app.FiberApp.Get("/api/user-books/returns/:id", middleware.AuthenticateJWT, middleware.AuthenticateAdmin, userBookHandler.ReturnBooks)
+	app.FiberApp.Post("/api/user-books/borrows/:id", middleware.AuthenticateJWT, middleware.AuthenticateAdmin, userBookHandler.BorrowBooks)
+	app.FiberApp.Put("/api/user-books/returns/:id", middleware.AuthenticateJWT, middleware.AuthenticateAdmin, userBookHandler.ReturnBooks)
 
 	// user-fine-histories
 	app.FiberApp.Get("/api/user-fine-histories", middleware.AuthenticateJWT, middleware.AuthenticateAdmin, middleware.ParseQueryFilter, userFineHistoryHandler.GetAll)

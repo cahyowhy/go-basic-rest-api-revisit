@@ -68,10 +68,10 @@ func (handler *UserHandler) Update(c *fiber.Ctx) error {
 
 	response, err := handler.service.Update(int(id), c.Body())
 	if err == nil {
-		return c.Status(http.StatusInternalServerError).JSON(util.ToMapKey("message", "invalid path params"))
+		return c.JSON(response)
 	}
 
-	return c.JSON(response)
+	return c.Status(http.StatusInternalServerError).JSON(util.ToMapKey("message", err.Error()))
 }
 
 func (handler *UserHandler) Login(c *fiber.Ctx) error {

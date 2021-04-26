@@ -8,7 +8,6 @@ require (
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/gofiber/fiber/v2 v2.8.0
 	github.com/gofrs/uuid v3.2.0+incompatible
-	github.com/jaswdr/faker v1.3.0
 	github.com/joho/godotenv v1.3.0
 	github.com/klauspost/compress v1.12.1 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
@@ -19,4 +18,5 @@ require (
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gorm.io/driver/postgres v1.0.8
 	gorm.io/gorm v1.21.7
+	syreclabs.com/go/faker v1.2.3
 )
