@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -19,7 +20,9 @@ func main() {
 	total := 10
 	envFile := []string{}
 
-	if len(os.Args) > 0 {
+	fmt.Println(os.Args)
+
+	if len(os.Args) >= 2 {
 		totalArgs, valid := util.ToInt(os.Args[1])
 
 		if !valid {

@@ -5,7 +5,7 @@ Basic Rest API Golang
 
 Package | Description 
 --- | --- 
-[Gorilla](https://github.com/gorilla/mux) | Request router and dispatcher for matching incoming requests to their respective handler
+[Fiber](https://github.com/gofiber/fiber) | Fast router based on golang/fasthttp
 [Gorm](https://github.com/go-gorm/gorm) | ORM
 [GoDotEnv](https://github.com/joho/godotenv) | .env lib 
 [Faker](https://github.com/jaswdr/faker) | faker (for seeding)
@@ -36,20 +36,23 @@ Package | Description
     ```bash
     go run cmd/migrate/main.go 
     ```
-
+3. run delete all data from table
+    ```bash
+    go run cmd/delete_all_row/main.go
+    ```
 
 ## Folder Structure
     .
     └── go-basic-rest-api-revisit/
         ├── cmd/
-        │   └── seeder        #db seeder
-        │   └── migrate       #db migrate
-        ├── config            #.env var value, json validator
-        ├── fake              #data faker
-        ├── database          #get database instance
-        ├── handler           #rest api handler / controller
-        ├── service           #rest api service [for bussiness logic]
-        ├── middleware        #rest api middleware, before visiting controller
-        ├── router            #rest api router
-        ├── model             #rest api model
-        └── util              #buch off helper function
+        │   └── seeder   #db seeder
+        │   └── migrate  #drop current existing db then create new
+        ├── config       #.env var value, json validator
+        ├── fake         #data faker
+        ├── database     #get database instance
+        ├── handler      #rest api handler / controller
+        ├── service      #rest api service [for bussiness logic]
+        ├── middleware   #rest api middleware, before visiting controller
+        ├── app          #app instance (init -> apply routes -> run)
+        ├── model        #rest api model
+        └── util         #buch off helper function
