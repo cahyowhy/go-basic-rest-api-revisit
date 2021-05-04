@@ -187,7 +187,7 @@ const (
 )
 
 // create user from db => login => token
-func InitLoginUser(loginType TypeLogin) (string, error) {
+func InitLoginUser(loginType TypeLogin) (string, model.User, error) {
 	user := fake.GetUsers(1)[0]
 
 	if loginType == LOGIN_ADMIN {
@@ -195,38 +195,38 @@ func InitLoginUser(loginType TypeLogin) (string, error) {
 	}
 
 	if err := GetApp().DB.Create(&user).Error; err != nil {
-		return "", err
+		return "", user, err
 	}
 
 	body, err := json.Marshal(map[string]string{"username": user.Username, "password": "12345678"})
 	if err != nil {
-		return "", err
+		return "", user, err
 	}
 
 	req, err := http.NewRequest("POST", "/api/users/auth/login", bytes.NewReader(body))
 	if err != nil {
-		return "", err
+		return "", user, err
 	}
 
 	resp, err := GetResp(req)
 	if err != nil {
-		return "", err
+		return "", user, err
 	}
 
 	data := make(map[string]interface{})
 	if err := ParseJson(resp, &data); err != nil {
-		return "", err
+		return "", user, err
 	}
 
 	val, err := util.NestedMapLookup(data, "data", "token")
 	if err != nil {
-		return "", err
+		return "", user, err
 	}
 
 	valStr, ok := val.(string)
 	if !ok {
-		return "", errors.New("data.token are not string")
+		return "", user, errors.New("data.token are not string")
 	}
 
-	return valStr, nil
+	return valStr, user, nil
 }

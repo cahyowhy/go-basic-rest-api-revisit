@@ -16,7 +16,7 @@ import (
 
 var tokenUserBook string
 var userBooksTestUb []model.UserBook
-var userTestUb []model.User
+var userLoginUserBook model.User
 
 type responseDataReturnBook struct {
 	Data struct {
@@ -30,31 +30,24 @@ type responseDataBorrowBook struct {
 }
 
 func init() {
-	tokenUserBookRes, err := test.InitLoginUser(test.LOGIN_ADMIN)
+	tokenUserBookRes, user, err := test.InitLoginUser(test.LOGIN_ADMIN)
 	if err != nil {
 		log.Fatal(err)
 
 		return
 	}
 
+	userLoginUserBook = user
 	tokenUserBook = tokenUserBookRes
-	usersInit, userBooksInit := initDataUserBook(false)
-	userTestUb = usersInit
+	userBooksInit := initDataUserBook(false, userLoginUserBook)
 	userBooksTestUb = userBooksInit
 }
 
-func initDataUserBook(nilReturnDate bool) ([]model.User, []model.UserBook) {
-	usersInit := fake.GetUsers(1)
+func initDataUserBook(nilReturnDate bool, userInit model.User) []model.UserBook {
 	booksInit := fake.GetBooks(1)
-
-	euCh, ebCh := createDataFirst(&usersInit), createDataFirst(&booksInit)
-	eu, eb := <-euCh, <-ebCh
-
-	userBooksInit := fake.GetUserBooks(booksInit, usersInit)
-
-	if eu != nil {
-		log.Fatal(eu)
-	}
+	ebCh := createDataFirst(&booksInit)
+	eb := <-ebCh
+	userBooksInit := fake.GetUserBooks(booksInit, []model.User{userInit})
 
 	if eb != nil {
 		log.Fatal(eb)
@@ -75,7 +68,7 @@ func initDataUserBook(nilReturnDate bool) ([]model.User, []model.UserBook) {
 		log.Fatal(eub)
 	}
 
-	return usersInit, userBooksInit
+	return userBooksInit
 }
 
 func createDataFirst(target interface{}) <-chan error {
@@ -127,7 +120,7 @@ func TestUserBookCount(t *testing.T) {
 
 func TestUserBookBorrow(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		resp, err := executeBorrowReturn(t, false, userTestUb[0].ID, &userBooksTestUb)
+		resp, err := executeBorrowReturn(t, false, userLoginUserBook.ID, &userBooksTestUb)
 		data := responseDataBorrowBook{}
 
 		if err := test.ParseJson(resp, &data); err != nil {
@@ -143,7 +136,7 @@ func TestUserBookBorrow(t *testing.T) {
 }
 func TestUserBookReturn(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		resp, err := executeBorrowReturn(t, true, userTestUb[0].ID, &userBooksTestUb)
+		resp, err := executeBorrowReturn(t, true, userLoginUserBook.ID, &userBooksTestUb)
 		data := responseDataReturnBook{}
 
 		if err := test.ParseJson(resp, &data); err != nil {
@@ -185,4 +178,41 @@ func executeBorrowReturn(t *testing.T, isReturn bool, userId uint, userBooksPara
 	}
 
 	return test.ExecuteBaseRequest(t, method, url, bytes.NewReader(b), http.StatusOK, getUbToken()), nil
+}
+
+func TestUserBookGetAllFromAuth(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		resp := test.ExecuteBaseRequest(t, "GET", "/api/user-books/me", nil, http.StatusOK, getUbToken())
+		data := make(test.ResponseDataArray)
+		err := test.ParseJson(resp, &data)
+
+		if err != nil {
+			t.Errorf("error parsing : %w", err)
+		}
+
+		if err == nil {
+			test.CheckVisibleDataArray(t, data, "borrow_date", "return_date", "book", "user", "ID")
+
+			vals, ok := data["data"]
+			if ok && len(vals) > 0 {
+				for _, val := range vals {
+					user_id, ok := val["user_id"]
+					if !ok {
+						t.Error("user_id are not present")
+
+						return
+					}
+
+					user_id_fl := user_id.(float64)
+					if user_id_fl != float64(userLoginUserBook.ID) {
+						t.Errorf("got user id %f from resp instead off %d", user_id_fl, userLoginUserBook.ID)
+					}
+				}
+
+				return
+			}
+
+			t.Error("data.data empty or is not an array")
+		}
+	})
 }

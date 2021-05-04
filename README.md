@@ -25,7 +25,12 @@ Package | Description
 4. install [air](https://github.com/cosmtrek/air) to achieve live reload
 5. or if you won't use air. you can run with `go run .`
 
-
+## How to test
+1. run 
+    ```bash
+    ./run_test.sh
+    ```
+    this will run test and generate code coverage
 
 ## How to db:?
 1. run seeder

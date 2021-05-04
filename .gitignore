@@ -3,3 +3,5 @@ tmp/
 logs/
 .vscode/
 .test.env
+cover.html
+cover.out

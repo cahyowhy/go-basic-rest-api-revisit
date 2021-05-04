@@ -18,7 +18,7 @@ var tokenBook string
 var book model.Book
 
 func init() {
-	tokenBookRes, err := test.InitLoginUser(test.LOGIN_ADMIN)
+	tokenBookRes, _, err := test.InitLoginUser(test.LOGIN_ADMIN)
 	if err != nil {
 		log.Fatal(err)
 

@@ -14,10 +14,10 @@ import (
 
 var tokenUserFine string
 var userBooksTestUf []model.UserBook
-var userTestUf []model.User
+var userLoginUserFine model.User
 
 func init() {
-	tokenUserFineRes, err := test.InitLoginUser(test.LOGIN_ADMIN)
+	tokenUserFineRes, user, err := test.InitLoginUser(test.LOGIN_ADMIN)
 	if err != nil {
 		log.Fatal(err)
 
@@ -25,8 +25,8 @@ func init() {
 	}
 
 	tokenUserFine = tokenUserFineRes
-	usersInit, userBooksInit := initDataUserBook(true)
-	userTestUf = usersInit
+	userLoginUserFine = user
+	userBooksInit := initDataUserBook(true, userLoginUserFine)
 	userBooksTestUf = userBooksInit
 }
 
@@ -35,18 +35,55 @@ func getUfToken() []string {
 }
 
 func TestUserReturnBookInit(t *testing.T) {
-	resp, err := executeBorrowReturn(t, true, userTestUf[0].ID, &userBooksTestUf)
-	if err != nil {
+	resp, err := executeBorrowReturn(t, true, userLoginUserFine.ID, &userBooksTestUf)
+	if err == nil {
 		data := make(map[string]interface{})
-		if err := test.ParseJson(resp, &data); err == nil {
-			fmt.Println(data)
+		err := test.ParseJson(resp, &data)
+
+		if err != nil {
+			t.Error("err parse json %w", err)
+			return
 		}
+
+		t.Log(data)
 	}
+}
+
+func TestUserFineGetAll(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		resp := test.ExecuteBaseRequest(t, "GET", "/api/user-fine-histories", nil, http.StatusOK, getUfToken())
+		data := make(test.ResponseDataArray)
+		err := test.ParseJson(resp, &data)
+
+		if err != nil {
+			t.Errorf("error parsing : %w", err)
+		}
+
+		if err == nil {
+			test.CheckVisibleDataArray(t, data, "user", "fine", "has_paid", "user_book_ids", "ID")
+		}
+	})
+}
+
+func TestUserFineCount(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		resp := test.ExecuteBaseRequest(t, "GET", "/api/user-fine-histories/paging/count", nil, http.StatusOK, getUfToken())
+		data := make(test.ResponseDataTotal)
+		err := test.ParseJson(resp, &data)
+
+		if err != nil {
+			t.Errorf("error parsing : %w", err)
+		}
+
+		if err == nil {
+			test.CheckVisibleDataTotal(t, data)
+		}
+	})
 }
 
 func TestUserFinePay(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		user_id := userTestUf[0].ID
+		user_id := userLoginUserFine.ID
 		userFines := []model.UserFineHistory{}
 		paramFind := map[string]interface{}{"user_id": user_id, "has_paid": false}
 
@@ -82,6 +119,7 @@ func TestUserFinePay(t *testing.T) {
 			t.Errorf("error parsing : %w", err)
 		}
 
+		t.Log(data)
 		if err == nil {
 			msg, ok := data["message"]
 
@@ -92,38 +130,6 @@ func TestUserFinePay(t *testing.T) {
 			if ok && msg != "Success paid fine" {
 				t.Error("data.message should be Success paid fine")
 			}
-		}
-	})
-}
-
-func TestUserFineGetAll(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		resp := test.ExecuteBaseRequest(t, "GET", "/api/user-books", nil, http.StatusOK, getUfToken())
-		data := make(test.ResponseDataArray)
-		err := test.ParseJson(resp, &data)
-
-		if err != nil {
-			t.Errorf("error parsing : %w", err)
-		}
-
-		if err == nil {
-			test.CheckVisibleDataArray(t, data, "borrow_date", "return_date", "book", "user", "ID")
-		}
-	})
-}
-
-func TestUserFineCount(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		resp := test.ExecuteBaseRequest(t, "GET", "/api/user-books/paging/count", nil, http.StatusOK, getUfToken())
-		data := make(test.ResponseDataTotal)
-		err := test.ParseJson(resp, &data)
-
-		if err != nil {
-			t.Errorf("error parsing : %w", err)
-		}
-
-		if err == nil {
-			test.CheckVisibleDataTotal(t, data)
 		}
 	})
 }
