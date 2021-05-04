@@ -94,64 +94,72 @@ func getUbToken() []string {
 }
 
 func TestUserBookGetAll(t *testing.T) {
-	resp := test.ExecuteBaseRequest(t, "GET", "/api/user-books", nil, http.StatusOK, getUbToken())
-	data := make(test.ResponseDataArray)
-	err := test.ParseJson(resp, &data)
+	t.Run("success", func(t *testing.T) {
+		resp := test.ExecuteBaseRequest(t, "GET", "/api/user-books", nil, http.StatusOK, getUbToken())
+		data := make(test.ResponseDataArray)
+		err := test.ParseJson(resp, &data)
 
-	if err != nil {
-		t.Errorf("error parsing : %w", err)
-	}
+		if err != nil {
+			t.Errorf("error parsing : %w", err)
+		}
 
-	if err == nil {
-		test.CheckVisibleDataArray(t, data, "borrow_date", "return_date", "book", "user", "ID")
-	}
+		if err == nil {
+			test.CheckVisibleDataArray(t, data, "borrow_date", "return_date", "book", "user", "ID")
+		}
+	})
 }
 
 func TestUserBookCount(t *testing.T) {
-	resp := test.ExecuteBaseRequest(t, "GET", "/api/user-books/paging/count", nil, http.StatusOK, getUbToken())
-	data := make(test.ResponseDataTotal)
-	err := test.ParseJson(resp, &data)
+	t.Run("success", func(t *testing.T) {
+		resp := test.ExecuteBaseRequest(t, "GET", "/api/user-books/paging/count", nil, http.StatusOK, getUbToken())
+		data := make(test.ResponseDataTotal)
+		err := test.ParseJson(resp, &data)
 
-	if err != nil {
-		t.Errorf("error parsing : %w", err)
-	}
+		if err != nil {
+			t.Errorf("error parsing : %w", err)
+		}
 
-	if err == nil {
-		test.CheckVisibleDataTotal(t, data)
-	}
+		if err == nil {
+			test.CheckVisibleDataTotal(t, data)
+		}
+	})
 }
 
 func TestUserBookBorrow(t *testing.T) {
-	resp, err := executeBorrowReturn(t, false, userTestUb[0].ID, &userBooksTestUb)
-	data := responseDataBorrowBook{}
+	t.Run("success", func(t *testing.T) {
+		resp, err := executeBorrowReturn(t, false, userTestUb[0].ID, &userBooksTestUb)
+		data := responseDataBorrowBook{}
 
-	if err := test.ParseJson(resp, &data); err != nil {
-		t.Errorf("error parsing : %w", err)
-	}
-
-	if err == nil {
-		if len(data.Data) <= 0 {
-			t.Error("user books borrowed not showing")
+		if err := test.ParseJson(resp, &data); err != nil {
+			t.Errorf("error parsing : %w", err)
 		}
-	}
+
+		if err == nil {
+			if len(data.Data) <= 0 {
+				t.Error("user books borrowed not showing")
+			}
+		}
+	})
 }
 func TestUserBookReturn(t *testing.T) {
-	resp, err := executeBorrowReturn(t, true, userTestUb[0].ID, &userBooksTestUb)
-	data := responseDataReturnBook{}
+	t.Run("success", func(t *testing.T) {
+		resp, err := executeBorrowReturn(t, true, userTestUb[0].ID, &userBooksTestUb)
+		data := responseDataReturnBook{}
 
-	if err := test.ParseJson(resp, &data); err != nil {
-		t.Errorf("error parsing : %w", err)
-	}
-
-	if err == nil {
-		if data.Message != "return book succeed" {
-			t.Error("message not showing")
+		if err := test.ParseJson(resp, &data); err != nil {
+			t.Errorf("error parsing : %w", err)
 		}
 
-		if data.Data.Fine > 0 {
-			t.Error("fine should be 0")
+		if err == nil {
+			if data.Message != "return book succeed" {
+				t.Error("message not showing")
+			}
+
+			if data.Data.Fine > 0 {
+				t.Error("fine should be 0")
+			}
 		}
-	}
+	})
 }
 
 func executeBorrowReturn(t *testing.T, isReturn bool, userId uint, userBooksParams *[]model.UserBook) (*http.Response, error) {
@@ -169,6 +177,7 @@ func executeBorrowReturn(t *testing.T, isReturn bool, userId uint, userBooksPara
 		body["books"] = append(body["books"], item)
 	}
 
+	t.Log(fmt.Sprintf("body : %v, path : %s", body, url))
 	b, err := json.Marshal(body)
 	if err != nil {
 		t.Errorf("error parse to json : %w", err)

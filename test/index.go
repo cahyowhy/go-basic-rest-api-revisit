@@ -97,7 +97,7 @@ func ExecuteBaseRequest(t *testing.T, method, url string, body io.Reader, expSta
 		t.Errorf("http status should %d instead got %d", expStatus, resp.StatusCode)
 
 		b, err := ioutil.ReadAll(resp.Body)
-		if err == nil {
+		if err != nil {
 			t.Log(string(b))
 		}
 	}
